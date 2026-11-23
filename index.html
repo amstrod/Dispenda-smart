@@ -5,338 +5,231 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#16a34a" />
   <link rel="manifest" href="./manifest.json" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>DispensaSmart Famiglia - Zero Sprechi</title>
+  <title>DispensaSmart Famiglia</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <style>
-    body { -webkit-tap-highlight-color: transparent; }
-    #reader video, #ocr-video { border-radius: 0.75rem; object-fit: cover; }
-  </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-28">
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-24">
 
-  <header class="bg-green-600 text-white px-4 py-4 shadow-md sticky top-0 z-20">
+  <header class="bg-green-600 text-white px-4 py-4 shadow sticky top-0 z-20">
     <div class="max-w-md mx-auto flex items-center justify-between gap-2">
       <div>
-        <h1 class="text-xl font-bold tracking-tight">DispensaSmart</h1>
-        <p id="family-subtitle" class="text-xs text-green-100">Gruppo: CASA-BASE • Locale</p>
+        <h1 class="text-xl font-bold">DispensaSmart</h1>
+        <p id="sub-fam" class="text-xs text-green-100">Gruppo: CASA-BASE</p>
       </div>
-      <div class="flex items-center gap-2">
-        <div id="alert-badge" class="hidden bg-amber-400 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full">0 alert</div>
-        <button id="btn-family-toggle" type="button" class="bg-green-700 active:bg-green-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-green-500">
-          👨‍👩‍👧‍👦 Famiglia
-        </button>
-      </div>
+      <button id="b-fam" type="button" class="bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-green-500">
+        Famiglia
+      </button>
     </div>
   </header>
 
   <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
 
-    <section id="family-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-green-200 space-y-3">
+    <section id="box-fam" class="hidden bg-white p-4 rounded-2xl shadow border border-green-200 space-y-2.5">
       <div class="flex justify-between items-center">
-        <h2 class="font-bold text-sm text-slate-800">Dispensa Condivisa Famiglia</h2>
-        <button id="btn-family-close" type="button" class="text-xs text-slate-500">Chiudi</button>
+        <span class="font-bold text-sm">Codice Famiglia</span>
+        <button id="b-fam-close" type="button" class="text-xs text-slate-500">Chiudi</button>
       </div>
-      <p class="text-xs text-slate-500">
-        Usa lo stesso <b>Codice Famiglia</b> sui telefoni di casa. Puoi sincronizzare tramite Supabase (opzionale).
-      </p>
       <div class="flex gap-2">
-        <input id="inp-family-code" type="text" placeholder="Es. CASA-ROSSI" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm uppercase" />
-        <button id="btn-family-apply" type="button" class="bg-green-600 active:bg-green-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl">
-          Attiva
-        </button>
+        <input id="in-fam" type="text" placeholder="ES. CASA-ROSSI" class="flex-1 border rounded-xl px-3 py-2 text-sm uppercase" />
+        <button id="b-fam-ok" type="button" class="bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-xl">Salva</button>
       </div>
-      <button id="btn-family-share" type="button" class="w-full bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl">
-        📤 Condividi Codice / Link Famiglia
+      <button id="b-fam-share" type="button" class="w-full bg-slate-100 text-slate-700 text-xs font-semibold py-2 rounded-xl">
+        Condividi Link Famiglia
       </button>
-      <details class="border-t border-slate-100 pt-2">
-        <summary class="text-xs font-semibold text-slate-600 cursor-pointer">Cloud Sync Supabase (multi-dispositivo)</summary>
-        <div class="mt-2 space-y-2">
-          <input id="inp-sb-url" type="text" placeholder="Supabase URL (https://xxxx.supabase.co)" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs" />
-          <input id="inp-sb-key" type="password" placeholder="Supabase Anon Key" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs" />
-          <div class="flex gap-2">
-            <button id="btn-sb-save" type="button" class="flex-1 bg-slate-800 text-white text-xs font-semibold py-2 rounded-xl">Salva Cloud</button>
-            <button id="btn-sb-sync" type="button" class="flex-1 bg-green-100 text-green-800 text-xs font-semibold py-2 rounded-xl">Sincronizza ora</button>
-          </div>
-          <p id="cloud-status" class="text-[11px] text-slate-500"></p>
-        </div>
-      </details>
     </section>
 
     <section class="grid grid-cols-3 gap-2 text-center">
-      <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100">
-        <div id="count-total" class="text-xl font-bold text-slate-800">0</div>
+      <div class="bg-white p-3 rounded-xl shadow-sm border">
+        <div id="c-tot" class="text-xl font-bold">0</div>
         <div class="text-xs text-slate-500">Totale</div>
       </div>
       <div class="bg-amber-50 p-3 rounded-xl shadow-sm border border-amber-200">
-        <div id="count-soon" class="text-xl font-bold text-amber-600">0</div>
+        <div id="c-soon" class="text-xl font-bold text-amber-600">0</div>
         <div class="text-xs text-amber-700">In scadenza</div>
       </div>
       <div class="bg-red-50 p-3 rounded-xl shadow-sm border border-red-200">
-        <div id="count-expired" class="text-xl font-bold text-red-600">0</div>
+        <div id="c-exp" class="text-xl font-bold text-red-600">0</div>
         <div class="text-xs text-red-700">Scaduti</div>
       </div>
     </section>
 
     <section class="grid grid-cols-2 gap-2">
-      <button id="btn-scan-all" type="button" class="bg-green-600 active:bg-green-700 text-white font-semibold py-3 px-3 rounded-xl shadow-sm flex items-center justify-center gap-1.5 text-sm">
-        <span>📷</span> Scansiona Tutto
+      <button id="b-cam" type="button" class="bg-green-600 active:bg-green-800 text-white font-semibold py-3 rounded-xl text-sm">
+        📷 Foto / Scadenza
       </button>
-      <button id="btn-add-manual" type="button" class="bg-white active:bg-slate-100 text-slate-700 font-semibold py-3 px-3 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center gap-1.5 text-sm">
-        <span>➕</span> Aggiungi a mano
-      </button>
-    </section>
-
-    <section class="bg-amber-50/80 border border-amber-200 rounded-2xl p-3 flex items-center justify-between gap-2">
-      <div class="text-xs text-slate-700">
-        <span class="font-bold" id="selected-count">0</span> ingredienti selezionati
-        <button id="btn-select-soon" type="button" class="ml-1.5 underline text-amber-800 font-semibold">
-          Seleziona in scadenza
-        </button>
-      </div>
-      <button id="btn-recipes" type="button" class="bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm shrink-0">
-        🍳 Ricette
+      <button id="b-add" type="button" class="bg-white active:bg-slate-200 text-slate-800 font-semibold py-3 rounded-xl border border-slate-300 text-sm">
+        ➕ Aggiungi a mano
       </button>
     </section>
 
-    <section id="recipes-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-amber-300 space-y-3">
+    <input id="file-cam" type="file" accept="image/*" capture="environment" class="hidden" />
+
+    <section class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between gap-2">
+      <span class="text-xs"><b id="c-sel">0</b> selezionati</span>
+      <button id="b-rec" type="button" class="bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl">
+        🍳 Proponi Ricette
+      </button>
+    </section>
+
+    <section id="box-rec" class="hidden bg-white p-4 rounded-2xl shadow border border-amber-300 space-y-2">
       <div class="flex justify-between items-center">
-        <h2 class="font-bold text-sm text-slate-800">🍳 Ricette con i prodotti selezionati</h2>
-        <button id="btn-recipes-close" type="button" class="text-xs text-slate-500">Chiudi</button>
+        <span class="font-bold text-sm">Ricette suggerite</span>
+        <button id="b-rec-close" type="button" class="text-xs text-slate-500">Chiudi</button>
       </div>
-      <div id="recipes-list" class="space-y-2.5"></div>
+      <div id="rec-list" class="space-y-2 text-xs"></div>
     </section>
 
-    <section id="scanner-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-slate-200 space-y-3">
+    <section id="box-form" class="hidden bg-white p-4 rounded-2xl shadow border border-slate-200 space-y-3">
       <div class="flex justify-between items-center">
-        <h2 class="font-bold text-sm text-slate-700">Step 1/2: Inquadra il codice a barre</h2>
-        <button id="btn-scanner-close" type="button" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Chiudi</button>
+        <span class="font-bold text-sm">Nuovo prodotto</span>
+        <button id="b-cancel" type="button" class="text-xs text-slate-500">Annulla</button>
       </div>
-      <div id="reader" class="w-full overflow-hidden rounded-xl bg-black min-h-[220px]"></div>
-      <p id="scanner-status" class="text-xs text-center text-slate-500">Avvio fotocamera in corso...</p>
-      <button id="btn-skip-barcode" type="button" class="w-full bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl">
-        Salta barcode → Leggi solo scadenza
-      </button>
-    </section>
-
-    <section id="ocr-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-slate-200 space-y-3">
-      <div class="flex justify-between items-center">
-        <h2 class="font-bold text-sm text-slate-700">Step 2/2: Inquadra la data di scadenza</h2>
-        <button id="btn-ocr-skip" type="button" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Salta</button>
-      </div>
-      <p class="text-xs text-slate-500">Allinea la data nella fascia gialla e tocca <b>Leggi Data</b>.</p>
-      <div class="relative w-full overflow-hidden rounded-xl bg-black aspect-[4/3]">
-        <video id="ocr-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
-        <div class="pointer-events-none absolute inset-x-4 top-1/2 -translate-y-1/2 h-14 border-2 border-amber-400 rounded-lg bg-amber-400/10"></div>
-      </div>
-      <canvas id="ocr-canvas" class="hidden"></canvas>
-      <p id="ocr-status" class="text-xs text-center text-slate-600 font-medium">Fotocamera pronta</p>
-      <button id="btn-read-date" type="button" class="w-full bg-amber-500 active:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl shadow-sm">
-        🔍 Leggi Data dalla Confezione
-      </button>
-    </section>
-
-    <section id="form-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-slate-200 space-y-3">
-      <div class="flex justify-between items-center">
-        <h2 class="font-bold text-base text-slate-800">Dettagli Prodotto</h2>
-        <button id="btn-form-cancel" type="button" class="text-xs text-slate-500 hover:text-slate-800">Annulla</button>
-      </div>
-
-      <div id="product-preview" class="hidden flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-        <img id="preview-img" src="" alt="" class="w-12 h-12 object-contain rounded bg-white border" />
-        <div class="text-xs">
-          <div class="font-semibold text-green-700">Prodotto trovato!</div>
-          <div id="preview-barcode" class="text-slate-500"></div>
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-xs font-medium text-slate-600 mb-1">Nome prodotto *</label>
-        <input id="inp-name" type="text" placeholder="Es. Uova, Latte, Pasta, Pomodori..." class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-green-600" />
-      </div>
-
+      <input id="in-name" type="text" placeholder="Nome (es. Uova, Pasta, Latte...)" class="w-full border rounded-xl px-3 py-2 text-sm" />
       <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Dove lo metti?</label>
-          <select id="inp-location" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm bg-white">
-            <option value="Frigo">❄️ Frigo</option>
-            <option value="Dispensa">🗄️ Dispensa</option>
-            <option value="Freezer">🧊 Freezer</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-slate-600 mb-1">Quantità</label>
-          <input id="inp-qty" type="number" min="1" value="1" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm" />
-        </div>
+        <select id="in-loc" class="border rounded-xl px-3 py-2 text-sm bg-white">
+          <option value="Frigo">Frigo</option>
+          <option value="Dispensa">Dispensa</option>
+          <option value="Freezer">Freezer</option>
+        </select>
+        <input id="in-qty" type="number" min="1" value="1" class="border rounded-xl px-3 py-2 text-sm" />
       </div>
-
-      <div>
-        <div class="flex items-center justify-between mb-1">
-          <label class="block text-xs font-medium text-slate-600">Data di scadenza *</label>
-          <button id="btn-open-ocr-form" type="button" class="text-xs text-amber-700 font-semibold underline">
-            📷 Leggi con fotocamera
-          </button>
-        </div>
-        <input id="inp-expiry" type="date" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm" />
-        <div id="ocr-raw-hint" class="hidden text-[11px] text-slate-500 mt-1"></div>
-        <div class="flex gap-1.5 mt-2 flex-wrap">
-          <button type="button" data-days="3" class="quick-days-btn text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+3 gg</button>
-          <button type="button" data-days="7" class="quick-days-btn text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+7 gg</button>
-          <button type="button" data-days="15" class="quick-days-btn text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+15 gg</button>
-          <button type="button" data-days="30" class="quick-days-btn text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+1 mese</button>
-        </div>
-      </div>
-
-      <button id="btn-save-product" type="button" class="w-full bg-green-600 active:bg-green-700 text-white font-bold py-3 rounded-xl shadow-sm">
-        Salva in dispensa
+      <input id="in-exp" type="date" class="w-full border rounded-xl px-3 py-2 text-sm" />
+      <button id="b-save" type="button" class="w-full bg-green-600 active:bg-green-700 text-white font-bold py-2.5 rounded-xl text-sm">
+        Salva prodotto
       </button>
     </section>
 
-    <section class="flex gap-2 overflow-x-auto pb-1">
-      <button type="button" data-filter="Tutti" class="filter-btn bg-slate-800 text-white text-xs font-semibold px-3 py-1.5 rounded-full">Tutti</button>
-      <button type="button" data-filter="Frigo" class="filter-btn bg-white text-slate-600 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-full">❄️ Frigo</button>
-      <button type="button" data-filter="Dispensa" class="filter-btn bg-white text-slate-600 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-full">🗄️ Dispensa</button>
-      <button type="button" data-filter="Freezer" class="filter-btn bg-white text-slate-600 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-full">🧊 Freezer</button>
-    </section>
-
-    <section id="items-list" class="space-y-2.5"></section>
-
+    <section id="list" class="space-y-2"></section>
   </main>
 
   <script>
-    var familyCode = "CASA-BASE";
-    var cloudConfig = { url: "", key: "" };
-    var pantry = [];
-    var selectedIds = [];
-    var currentFilter = "Tutti";
-    var html5QrCode = null;
-    var ocrStream = null;
-    var currentImage = "";
-    var currentBarcode = "";
-    var pendingProductName = "";
-    var pendingBarcodeFound = false;
-
-    var RECIPE_CATALOG = [
-      { title: "Frittata svuota-frigo", time: "15 min", ingredients: ["uova", "formaggio", "patate", "zucchine", "cipolla", "prosciutto", "spinaci"], steps: "Sbatti le uova con sale e formaggio, aggiungi le verdure o i salumi a pezzetti e cuoci in padella coperta a fuoco dolce." },
-      { title: "Pasta al pomodoro e tonno", time: "15 min", ingredients: ["pasta", "pomodoro", "passata", "tonno", "olive", "aglio", "olio"], steps: "Cuoci la pasta al dente, salta in padella con sugo di pomodoro e tonno o olive se disponibili." },
-      { title: "Pasta cremosa con formaggio o zucchine", time: "15 min", ingredients: ["pasta", "panna", "formaggio", "zucchine", "prosciutto", "pancetta", "pepe"], steps: "Rosola gli ingredienti scelti in padella, unisci la pasta scolata con un goccio di acqua di cottura e manteca." },
-      { title: "Insalatona completa anti-spreco", time: "10 min", ingredients: ["lattuga", "insalata", "pomodoro", "tonno", "mais", "mozzarella", "uova", "cetrioli"], steps: "Taglia le verdure fresche, aggiungi proteine e condisci con olio, limone o aceto." },
-      { title: "Riso o risotto veloce", time: "20 min", ingredients: ["riso", "zucchine", "funghi", "zucca", "brodo", "formaggio", "burro"], steps: "Tosta il riso, bagna con brodo caldo aggiungendo gli ingredienti scelti e manteca a fine cottura." },
-      { title: "Toast, piadina o wrap farcito", time: "10 min", ingredients: ["pane", "piadina", "prosciutto", "formaggio", "mozzarella", "pomodoro", "lattuga"], steps: "Farcisci pane o piadina con gli ingredienti selezionati e scalda in padella o piastra." },
-      { title: "Yogurt bowl con frutta o cereali", time: "5 min", ingredients: ["yogurt", "banana", "mela", "fragole", "avena", "cereali", "miele"], steps: "Versa lo yogurt in una ciotola, aggiungi frutta fresca a pezzi e cereali o avena." },
-      { title: "Vellutata o zuppa calda", time: "25 min", ingredients: ["carote", "patate", "zucca", "zucchine", "ceci", "fagioli", "lenticchie", "brodo"], steps: "Fai bollire verdure e legumi con brodo o acqua fino a intenerirli, poi frulla o gusta a pezzi." }
-    ];
-
-    function storageKey(code) { return "dispensa_smart_family_" + code; }
-
-    function loadPantryForFamily(code) {
+    (function () {
+      var fam = "CASA-BASE";
       try {
-        var raw = localStorage.getItem(storageKey(code));
-        return raw ? JSON.parse(raw) : [];
-      } catch (e) { return []; }
-    }
+        var q = new URLSearchParams(window.location.search).get("family");
+        fam = (q || localStorage.getItem("ds_fam") || "CASA-BASE").toUpperCase();
+        localStorage.setItem("ds_fam", fam);
+      } catch (e) {}
 
-    function updateHeaderSubtitle() {
-      var mode = (cloudConfig.url && cloudConfig.key) ? "Cloud Sync" : "Locale";
-      document.getElementById("family-subtitle").textContent = "Gruppo: " + familyCode + " • " + mode;
-    }
+      var items = [];
+      var sel = [];
 
-    function toggleFamilyBox() {
-      var box = document.getElementById("family-box");
-      box.classList.toggle("hidden");
-      document.getElementById("inp-family-code").value = familyCode;
-      document.getElementById("inp-sb-url").value = cloudConfig.url || "";
-      document.getElementById("inp-sb-key").value = cloudConfig.key || "";
-    }
+      var RICETTE = [
+        { t: "Frittata svuota-frigo", ing: ["uova", "formaggio", "patate", "zucchine", "cipolla", "prosciutto"], d: "Sbatti le uova, unisci gli ingredienti a pezzetti e cuoci in padella." },
+        { t: "Pasta veloce", ing: ["pasta", "pomodoro", "passata", "tonno", "olive", "panna", "formaggio"], d: "Cuoci la pasta e condiscila con sugo, tonno o formaggio." },
+        { t: "Insalatona / Piatto freddo", ing: ["lattuga", "insalata", "pomodoro", "tonno", "mais", "mozzarella", "uova"], d: "Unisci verdure e proteine con olio e sale." },
+        { t: "Riso o zuppa", ing: ["riso", "zucchine", "zucca", "carote", "patate", "ceci", "fagioli"], d: "Cuoci insieme gli ingredienti scelti in pentola o padella." }
+      ];
 
-    function applyFamilyCode() {
-      var val = (document.getElementById("inp-family-code").value || "").trim().toUpperCase();
-      if (!val) { alert("Inserisci un codice famiglia."); return; }
-      familyCode = val;
-      try { localStorage.setItem("dispensa_family_code", familyCode); } catch (e) {}
-      pantry = loadPantryForFamily(familyCode);
-      selectedIds = [];
-      updateHeaderSubtitle();
-      render();
-      if (cloudConfig.url && cloudConfig.key) syncFromCloud();
-      alert("Gruppo famiglia impostato su: " + familyCode);
-    }
-
-    function shareFamilyInvite() {
-      var shareUrl = window.location.origin + window.location.pathname + "?family=" + encodeURIComponent(familyCode);
-      var msg = 'Unisciti alla dispensa condivisa "' + familyCode + '" su DispensaSmart: ' + shareUrl;
-      if (navigator.share) {
-        navigator.share({ title: "DispensaSmart Famiglia", text: msg, url: shareUrl }).catch(function () {});
-        return;
-      }
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareUrl).then(function () {
-          alert("Link copiato negli appunti:\n" + shareUrl);
-        }, function () { alert(msg); });
-      } else {
-        alert(msg);
-      }
-    }
-
-    function saveCloudConfig() {
-      var url = (document.getElementById("inp-sb-url").value || "").trim().replace(/\/+$/, "");
-      var key = (document.getElementById("inp-sb-key").value || "").trim();
-      cloudConfig = { url: url, key: key };
-      try { localStorage.setItem("dispensa_sb_config", JSON.stringify(cloudConfig)); } catch (e) {}
-      updateHeaderSubtitle();
-      document.getElementById("cloud-status").textContent = (url && key)
-        ? 'Configurazione cloud salvata. Tocca "Sincronizza ora".'
-        : "Cloud disattivato (modalità locale attiva).";
-    }
-
-    function pushToCloud() {
-      if (!cloudConfig.url || !cloudConfig.key) return;
-      fetch(cloudConfig.url + "/rest/v1/family_pantries?on_conflict=family_code", {
-        method: "POST",
-        headers: {
-          "apikey": cloudConfig.key,
-          "Authorization": "Bearer " + cloudConfig.key,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates"
-        },
-        body: JSON.stringify([{ family_code: familyCode, items: pantry, updated_at: new Date().toISOString() }])
-      }).then(function () {
-        document.getElementById("cloud-status").textContent = "Sincronizzato sul cloud (" + new Date().toLocaleTimeString("it-IT") + ")";
-      }).catch(function () {
-        document.getElementById("cloud-status").textContent = "Errore invio al cloud (dati salvati in locale).";
-      });
-    }
-
-    function syncFromCloud() {
-      if (!cloudConfig.url || !cloudConfig.key) { alert("Inserisci prima URL e Anon Key di Supabase."); return; }
-      fetch(cloudConfig.url + "/rest/v1/family_pantries?family_code=eq." + encodeURIComponent(familyCode) + "&select=items", {
-        headers: { "apikey": cloudConfig.key, "Authorization": "Bearer " + cloudConfig.key }
-      }).then(function (r) { return r.json(); }).then(function (rows) {
-        if (Array.isArray(rows) && rows.length > 0 && Array.isArray(rows[0].items)) {
-          pantry = rows[0].items;
-          try { localStorage.setItem(storageKey(familyCode), JSON.stringify(pantry)); } catch (e) {}
-          selectedIds = [];
-          render();
-          document.getElementById("cloud-status").textContent = "Aggiornato dal cloud (" + new Date().toLocaleTimeString("it-IT") + ")";
-        } else {
-          pushToCloud();
+      function key() { return "ds_items_" + fam; }
+      function load() { try { var r = localStorage.getItem(key()); items = r ? JSON.parse(r) : []; } catch (e) { items = []; } }
+      function save() { try { localStorage.setItem(key(), JSON.stringify(items)); } catch (e) {} render(); }
+      function daysLeft(s) { var t = new Date(); t.setHours(0, 0, 0, 0); var e = new Date(s + "T00:00:00"); return Math.round((e - t) / 86400000); }
+      function defaultExp(days) { var d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().split("T")[0]; }
+          function render() {
+        document.getElementById("sub-fam").textContent = "Gruppo: " + fam;
+        document.getElementById("c-tot").textContent = items.length;
+        document.getElementById("c-sel").textContent = sel.length;
+        var soon = 0, exp = 0;
+        for (var i = 0; i < items.length; i++) {
+          var dl = daysLeft(items[i].expiry);
+          if (dl < 0) exp++; else if (dl <= 3) soon++;
         }
-      }).catch(function () {
-        document.getElementById("cloud-status").textContent = "Impossibile leggere dal cloud.";
+        document.getElementById("c-soon").textContent = soon;
+        document.getElementById("c-exp").textContent = exp;
+        var box = document.getElementById("list");
+        if (!items.length) {
+          box.innerHTML = '<div class="text-center py-8 bg-white rounded-2xl border border-dashed text-slate-400 text-sm">Nessun prodotto. Tocca <b>Aggiungi a mano</b> o <b>Foto / Scadenza</b>.</div>';
+          return;
+        }
+        box.innerHTML = items.map(function (it) {
+          var chk = sel.indexOf(it.id) >= 0 ? "checked" : "";
+          return '<div class="bg-white p-3 rounded-xl border flex items-center justify-between gap-2"><div class="flex items-center gap-2.5 min-w-0"><input type="checkbox" ' + chk + ' data-id="' + it.id + '" class="chk-it w-4 h-4" /><div class="min-w-0"><div class="font-semibold text-sm truncate">' + it.name + '</div><div class="text-xs text-slate-500">' + it.loc + ' • Q.tà ' + it.qty + ' • Scad. ' + it.expiry + '</div></div></div><button type="button" data-id="' + it.id + '" class="del-it bg-slate-100 text-xs px-2.5 py-1.5 rounded-lg">Usato</button></div>';
+        }).join("");
+        var chks = box.querySelectorAll(".chk-it");
+        for (var c = 0; c < chks.length; c++) {
+          chks[c].addEventListener("change", function () {
+            var id = this.getAttribute("data-id"), idx = sel.indexOf(id);
+            if (idx >= 0) sel.splice(idx, 1); else sel.push(id);
+            document.getElementById("c-sel").textContent = sel.length;
+          });
+        }
+        var dels = box.querySelectorAll(".del-it");
+        for (var d = 0; d < dels.length; d++) {
+          dels[d].addEventListener("click", function () {
+            var id = this.getAttribute("data-id");
+            items = items.filter(function (x) { return x.id !== id; });
+            sel = sel.filter(function (x) { return x !== id; });
+            save();
+          });
+        }
+      }
+
+      document.getElementById("b-add").addEventListener("click", function () {
+        document.getElementById("in-name").value = "";
+        document.getElementById("in-qty").value = "1";
+        document.getElementById("in-exp").value = defaultExp(7);
+        document.getElementById("box-form").classList.remove("hidden");
       });
-    }
+      document.getElementById("b-cam").addEventListener("click", function () { document.getElementById("file-cam").click(); });
+      document.getElementById("file-cam").addEventListener("change", function () {
+        if (this.files && this.files[0]) {
+          document.getElementById("in-name").value = "";
+          document.getElementById("in-qty").value = "1";
+          document.getElementById("in-exp").value = defaultExp(7);
+          document.getElementById("box-form").classList.remove("hidden");
+          alert("Foto acquisita: imposta nome e scadenza e salva.");
+        }
+      });
+      document.getElementById("b-cancel").addEventListener("click", function () { document.getElementById("box-form").classList.add("hidden"); });
+      document.getElementById("b-save").addEventListener("click", function () {
+        var name = (document.getElementById("in-name").value || "").trim();
+        var loc = document.getElementById("in-loc").value;
+        var qty = parseInt(document.getElementById("in-qty").value, 10) || 1;
+        var expiry = document.getElementById("in-exp").value || defaultExp(7);
+        if (!name) { alert("Scrivi il nome del prodotto."); return; }
+        items.push({ id: String(Date.now()), name: name, loc: loc, qty: qty, expiry: expiry });
+        document.getElementById("box-form").classList.add("hidden");
+        save();
+      });
+      document.getElementById("b-rec").addEventListener("click", function () {
+        var chosen = items.filter(function (x) { return sel.indexOf(x.id) >= 0; });
+        if (!chosen.length) { alert("Seleziona prima almeno un prodotto dalla lista."); return; }
+        var names = chosen.map(function (x) { return x.name.toLowerCase(); });
+        var found = RICETTE.filter(function (r) {
+          return r.ing.some(function (k) { return names.some(function (n) { return n.indexOf(k) >= 0 || k.indexOf(n) >= 0; }); });
+        });
+        var recBox = document.getElementById("box-rec"), recList = document.getElementById("rec-list");
+        recBox.classList.remove("hidden");
+        if (!found.length) {
+          recList.innerHTML = '<div class="p-2.5 bg-amber-50 rounded-xl">Idea rapida con <b>' + chosen.map(function (x) { return x.name; }).join(", ") + '</b>: usali per un piatto unico o contorno veloce.</div>';
+          return;
+        }
+        recList.innerHTML = found.map(function (r) {
+          return '<div class="p-2.5 bg-slate-50 rounded-xl border"><div class="font-bold">' + r.t + '</div><div class="text-slate-600 mt-0.5">' + r.d + '</div></div>';
+        }).join("");
+      });
+      document.getElementById("b-rec-close").addEventListener("click", function () { document.getElementById("box-rec").classList.add("hidden"); });
+      document.getElementById("b-fam").addEventListener("click", function () { document.getElementById("in-fam").value = fam; document.getElementById("box-fam").classList.toggle("hidden"); });
+      document.getElementById("b-fam-close").addEventListener("click", function () { document.getElementById("box-fam").classList.add("hidden"); });
+      document.getElementById("b-fam-ok").addEventListener("click", function () {
+        var v = (document.getElementById("in-fam").value || "").trim().toUpperCase();
+        if (!v) return;
+        fam = v;
+        try { localStorage.setItem("ds_fam", fam); } catch (e) {}
+        sel = []; load(); render();
+        document.getElementById("box-fam").classList.add("hidden");
+      });
+      document.getElementById("b-fam-share").addEventListener("click", function () {
+        var u = window.location.origin + window.location.pathname + "?family=" + encodeURIComponent(fam);
+        if (navigator.share) navigator.share({ title: "DispensaSmart", url: u }).catch(function () {});
+        else alert("Link famiglia: " + u);
+      });
 
-    function saveStorage() {
-      try { localStorage.setItem(storageKey(familyCode), JSON.stringify(pantry)); } catch (e) {}
+      if ("serviceWorker" in navigator) { navigator.serviceWorker.register("./sw.js").catch(function () {}); }
+      load();
       render();
-      pushToCloud();
-    }
-
-    function getDaysLeft(dateStr) {
-      var today = new Date();
-      today.setHours(0, 0, 0, 0);
-      var exp = new Date(dateStr + "T00:00:00");
-      if (isNaN(exp.getTime())) 
+    })();
+  </script>
+</body>
+</html>
