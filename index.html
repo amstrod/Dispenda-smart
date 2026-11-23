@@ -47,12 +47,26 @@
     </section>
 
     <input id="file-bar" type="file" accept="image/*" capture="environment" class="hidden" />
-    <input id="file-exp" type="file" accept="image/*" capture="environment" class="hidden" />
     <div id="reader-hidden" class="hidden"></div>
-    <canvas id="work-canvas" class="hidden"></canvas>
-    <canvas id="crop-canvas" class="hidden"></canvas>
+    <canvas id="strip-canvas" class="hidden"></canvas>
 
     <div id="scan-status" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs px-3.5 py-2.5 rounded-xl font-medium"></div>
+
+    <section id="live-exp-box" class="hidden bg-slate-900 text-white p-3 rounded-2xl shadow space-y-2.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold">Allinea la data nella fascia</span>
+        <button id="b-live-close" type="button" class="text-xs bg-slate-700 px-2.5 py-1 rounded-lg">Chiudi</button>
+      </div>
+      <div class="relative w-full h-36 bg-black rounded-xl overflow-hidden flex items-center justify-center">
+        <video id="live-video" playsinline autoplay muted class="w-full h-full object-cover"></video>
+        <div class="pointer-events-none absolute inset-0 bg-black/55"></div>
+        <div class="pointer-events-none relative z-10 w-[90%] h-9 border-2 border-amber-400 rounded-md bg-transparent shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
+      </div>
+      <div class="flex items-center justify-between gap-2">
+        <span id="live-ocr-msg" class="text-[11px] text-amber-200 truncate">Ricerca automatica attiva...</span>
+        <button id="b-live-now" type="button" class="bg-amber-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-lg shrink-0">Leggi ora</button>
+      </div>
+    </section>
 
     <section class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between gap-2">
       <span class="text-xs"><b id="c-sel">0</b> selezionati</span>
@@ -69,7 +83,7 @@
       <div id="ocr-info" class="hidden text-xs bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-2 rounded-xl"></div>
       <div class="grid grid-cols-2 gap-2">
         <button id="b-form-bar" type="button" class="bg-emerald-50 active:bg-emerald-100 text-emerald-900 border border-emerald-300 font-semibold py-2 rounded-xl text-xs">📷 Scatta Barcode</button>
-        <button id="b-cam-exp" type="button" class="bg-amber-50 active:bg-amber-100 text-amber-950 border border-amber-300 font-semibold py-2 rounded-xl text-xs">📅 Scatta Scadenza</button>
+        <button id="b-cam-exp" type="button" class="bg-amber-50 active:bg-amber-100 text-amber-950 border border-amber-300 font-semibold py-2 rounded-xl text-xs">📅 Auto-Scadenza</button>
       </div>
       <input id="in-name" type="text" placeholder="Nome prodotto" class="w-full border rounded-xl px-3 py-2 text-sm" />
       <div class="grid grid-cols-2 gap-2">
@@ -96,6 +110,8 @@
         localStorage.setItem("ds_fam", fam);
       } catch (e) {}
       var items = [], sel = [], lastBarcode = "", lastExpiryNote = "";
+      var liveStream = null, liveTimer = null, ocrBusy = false;
+
       var RICETTE = [
         { t: "Colazione o merenda dolce", dolce: true, ing: ["biscott", "gemma", "cocco", "yogurt", "latte", "banana", "mela", "cioccolat", "miele", "cereali", "fette biscottate"], d: "Ottimo per colazione o merenda: gustalo da solo, con yogurt, latte o frutta fresca." },
         { t: "Frittata svuota-frigo", dolce: false, ing: ["uova", "formaggio", "patate", "zucchine", "cipolla", "prosciutto", "spinaci"], d: "Sbatti le uova, unisci gli ingredienti salati a pezzetti e cuoci in padella." },
@@ -119,17 +135,7 @@
         info.textContent = parts.join(" • ");
         info.classList.remove("hidden");
       }
-            function loadImageFromFile(file) {
-        return new Promise(function (resolve) {
-          var img = new Image();
-          var url = URL.createObjectURL(file);
-          img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
-          img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
-          img.src = url;
-        });
-      }
-
-      function applyGrayContrast(canvas, contrastFactor) {
+            function applyGrayContrast(canvas, contrastFactor) {
         var ctx = canvas.getContext("2d");
         var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         var d = imgData.data;
@@ -141,18 +147,6 @@
           d[i] = adj; d[i + 1] = adj; d[i + 2] = adj;
         }
         ctx.putImageData(imgData, 0, 0);
-      }
-
-      function renderCanvasVariant(img, canvasId, rx, ry, rw, rh, maxW, contrast) {
-        var c = document.getElementById(canvasId);
-        var sx = Math.round(img.width * rx), sy = Math.round(img.height * ry);
-        var sw = Math.max(1, Math.round(img.width * rw)), sh = Math.max(1, Math.round(img.height * rh));
-        var scale = sw > maxW ? (maxW / sw) : 1;
-        c.width = Math.max(1, Math.round(sw * scale));
-        c.height = Math.max(1, Math.round(sh * scale));
-        c.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
-        if (contrast && contrast !== 1) applyGrayContrast(c, contrast);
-        return c;
       }
 
       function validIso(y, m, d) {
@@ -206,24 +200,83 @@
           }).catch(function () { return "Barcode " + code; });
       }
 
-      function recognizeDateSmart(img) {
-        if (!img || typeof Tesseract === "undefined") return Promise.resolve(null);
-        var attempts = [
-          function () { return renderCanvasVariant(img, "crop-canvas", 0.05, 0.05, 0.9, 0.55, 1000, 1.8); },
-          function () { return renderCanvasVariant(img, "work-canvas", 0, 0, 1, 1, 1000, 1.6); },
-          function () { return renderCanvasVariant(img, "crop-canvas", 0.05, 0.05, 0.9, 0.55, 1000, 2.4); }
-        ];
-        function runAt(idx) {
-          if (idx >= attempts.length) return Promise.resolve(null);
-          var canvas = attempts[idx]();
-          return Tesseract.recognize(canvas, "eng", { logger: function () {} }).then(function (res) {
-            var raw = (res && res.data && res.data.text) ? res.data.text : "";
-            var found = parseExpiryDate(raw);
-            if (found) return found;
-            return runAt(idx + 1);
-          }).catch(function () { return runAt(idx + 1); });
+      function stopLiveExpiry() {
+        if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+        if (liveStream) {
+          liveStream.getTracks().forEach(function (tr) { tr.stop(); });
+          liveStream = null;
         }
-        return runAt(0);
+        ocrBusy = false;
+        document.getElementById("live-exp-box").classList.add("hidden");
+      }
+
+      function captureStripCanvas() {
+        var video = document.getElementById("live-video");
+        if (!video || !video.videoWidth || !video.videoHeight) return null;
+        var vw = video.videoWidth, vh = video.videoHeight;
+        var sx = Math.round(vw * 0.05);
+        var sy = Math.round(vh * 0.375);
+        var sw = Math.round(vw * 0.9);
+        var sh = Math.max(20, Math.round(vh * 0.25));
+
+        var c = document.getElementById("strip-canvas");
+        var scale = sw > 950 ? (950 / sw) : 1;
+        c.width = Math.max(1, Math.round(sw * scale));
+        c.height = Math.max(1, Math.round(sh * scale));
+        c.getContext("2d").drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+        applyGrayContrast(c, 1.9);
+        return c;
+      }
+
+      function runLiveFrameOcr(manual) {
+        if (ocrBusy || typeof Tesseract === "undefined") return;
+        var canvas = captureStripCanvas();
+        if (!canvas) return;
+        ocrBusy = true;
+        document.getElementById("live-ocr-msg").textContent = manual ? "Lettura fascia in corso..." : "Scansione automatica...";
+
+        Tesseract.recognize(canvas, "eng", { logger: function () {} }).then(function (res) {
+          ocrBusy = false;
+          var raw = (res && res.data && res.data.text) ? res.data.text : "";
+          var found = parseExpiryDate(raw);
+          if (found) {
+            document.getElementById("in-exp").value = found;
+            lastExpiryNote = "Data riconosciuta in automatico: " + found;
+            updateFormInfo();
+            stopLiveExpiry();
+            document.getElementById("box-form").classList.remove("hidden");
+          } else {
+            document.getElementById("live-ocr-msg").textContent = "Data non ancora chiara: allinea la riga e riprovo...";
+          }
+        }).catch(function () {
+          ocrBusy = false;
+          document.getElementById("live-ocr-msg").textContent = "Riprovo lettura automatica...";
+        });
+      }
+
+      function startLiveExpiry() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert("La fotocamera live non è supportata in questo browser.");
+          return;
+        }
+        stopLiveExpiry();
+        document.getElementById("live-exp-box").classList.remove("hidden");
+        document.getElementById("live-ocr-msg").textContent = "Avvio fotocamera sulla fascia...";
+
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        }).then(function (stream) {
+          liveStream = stream;
+          var video = document.getElementById("live-video");
+          video.srcObject = stream;
+          video.play().catch(function () {});
+          document.getElementById("live-ocr-msg").textContent = "Allinea la data nella striscia: lettura automatica...";
+          liveTimer = setInterval(function () { runLiveFrameOcr(false); }, 1600);
+        }).catch(function () {
+          stopLiveExpiry();
+          alert("Impossibile accedere alla fotocamera live. Controlla i permessi del browser.");
+        });
       }
 
       function render() {
@@ -250,6 +303,7 @@
       }
 
       document.getElementById("b-add").addEventListener("click", function () {
+        stopLiveExpiry();
         hideStatus();
         lastBarcode = "";
         lastExpiryNote = "";
@@ -261,18 +315,20 @@
       });
 
       function triggerBarcodePhoto() {
+        stopLiveExpiry();
         document.getElementById("file-bar").value = "";
         document.getElementById("file-bar").click();
       }
 
-      function triggerExpiryPhoto() {
-        document.getElementById("file-exp").value = "";
-        document.getElementById("file-exp").click();
-      }
-
       document.getElementById("b-cam-bar").addEventListener("click", triggerBarcodePhoto);
       document.getElementById("b-form-bar").addEventListener("click", triggerBarcodePhoto);
-      document.getElementById("b-cam-exp").addEventListener("click", triggerExpiryPhoto);
+      document.getElementById("b-cam-exp").addEventListener("click", function () {
+        if (!document.getElementById("in-qty").value) document.getElementById("in-qty").value = "1";
+        if (!document.getElementById("in-exp").value) document.getElementById("in-exp").value = defaultExp(7);
+        startLiveExpiry();
+      });
+      document.getElementById("b-live-close").addEventListener("click", stopLiveExpiry);
+      document.getElementById("b-live-now").addEventListener("click", function () { runLiveFrameOcr(true); });
 
       document.getElementById("file-bar").addEventListener("change", function () {
         var file = this.files && this.files[0];
@@ -284,7 +340,7 @@
           if (!code) {
             hideStatus();
             if (!formOpen) {
-              lastExpiryNote = "Barcode non trovato: scrivi il nome o usa Scatta Scadenza";
+              lastExpiryNote = "Barcode non trovato: scrivi il nome o usa Auto-Scadenza";
               document.getElementById("in-name").value = "";
               document.getElementById("in-qty").value = "1";
               document.getElementById("in-exp").value = defaultExp(7);
@@ -309,28 +365,10 @@
         });
       });
 
-      document.getElementById("file-exp").addEventListener("change", function () {
-        var file = this.files && this.files[0];
-        if (!file) return;
-        setStatus("Lettura data di scadenza in corso...");
-        loadImageFromFile(file).then(function (img) {
-          recognizeDateSmart(img).then(function (foundDate) {
-            hideStatus();
-            if (foundDate) {
-              document.getElementById("in-exp").value = foundDate;
-              lastExpiryNote = "Data riconosciuta: " + foundDate;
-            } else {
-              if (!document.getElementById("in-exp").value) document.getElementById("in-exp").value = defaultExp(7);
-              lastExpiryNote = "Data non riconosciuta: controlla o impostala qui sotto";
-            }
-            if (!document.getElementById("in-qty").value) document.getElementById("in-qty").value = "1";
-            updateFormInfo();
-            document.getElementById("box-form").classList.remove("hidden");
-          });
-        });
+      document.getElementById("b-cancel").addEventListener("click", function () {
+        stopLiveExpiry();
+        document.getElementById("box-form").classList.add("hidden");
       });
-
-      document.getElementById("b-cancel").addEventListener("click", function () { document.getElementById("box-form").classList.add("hidden"); });
       document.getElementById("b-save").addEventListener("click", function () {
         var name = (document.getElementById("in-name").value || "").trim();
         var loc = document.getElementById("in-loc").value;
@@ -338,6 +376,7 @@
         var expiry = document.getElementById("in-exp").value || defaultExp(7);
         if (!name) { alert("Scrivi o conferma il nome del prodotto."); return; }
         items.push({ id: String(Date.now()), name: name, loc: loc, qty: qty, expiry: expiry });
+        stopLiveExpiry();
         document.getElementById("box-form").classList.add("hidden");
         save();
       });
@@ -385,4 +424,3 @@
   </script>
 </body>
 </html>
-
