@@ -57,10 +57,13 @@
         <span class="text-xs font-semibold">Allinea la data nella fascia</span>
         <button id="b-live-close" type="button" class="text-xs bg-slate-700 px-2.5 py-1 rounded-lg">Chiudi</button>
       </div>
-      <div class="relative w-full h-36 bg-black rounded-xl overflow-hidden flex items-center justify-center">
-        <video id="live-video" playsinline autoplay muted class="w-full h-full object-cover"></video>
-        <div class="pointer-events-none absolute inset-0 bg-black/55"></div>
-        <div class="pointer-events-none relative z-10 w-[90%] h-9 border-2 border-amber-400 rounded-md bg-transparent shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"></div>
+      <div id="live-frame" class="relative w-full h-40 bg-black rounded-xl overflow-hidden">
+        <video id="live-video" playsinline autoplay muted class="absolute inset-0 w-full h-full object-cover"></video>
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-[36%] bg-black/55"></div>
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-[36%] bg-black/55"></div>
+        <div class="pointer-events-none absolute left-0 top-[36%] w-[6%] h-[28%] bg-black/55"></div>
+        <div class="pointer-events-none absolute right-0 top-[36%] w-[6%] h-[28%] bg-black/55"></div>
+        <div class="pointer-events-none absolute left-[6%] top-[36%] w-[88%] h-[28%] border-2 border-amber-400 rounded-md"></div>
       </div>
       <div class="flex items-center justify-between gap-2">
         <span id="live-ocr-msg" class="text-[11px] text-amber-200 truncate">Ricerca automatica attiva...</span>
@@ -135,7 +138,7 @@
         info.textContent = parts.join(" • ");
         info.classList.remove("hidden");
       }
-            function applyGrayContrast(canvas, contrastFactor) {
+      function applyGrayContrast(canvas, contrastFactor) {
         var ctx = canvas.getContext("2d");
         var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         var d = imgData.data;
@@ -214,10 +217,10 @@
         var video = document.getElementById("live-video");
         if (!video || !video.videoWidth || !video.videoHeight) return null;
         var vw = video.videoWidth, vh = video.videoHeight;
-        var sx = Math.round(vw * 0.05);
-        var sy = Math.round(vh * 0.375);
-        var sw = Math.round(vw * 0.9);
-        var sh = Math.max(20, Math.round(vh * 0.25));
+        var sx = Math.round(vw * 0.06);
+        var sy = Math.round(vh * 0.36);
+        var sw = Math.round(vw * 0.88);
+        var sh = Math.max(24, Math.round(vh * 0.28));
 
         var c = document.getElementById("strip-canvas");
         var scale = sw > 950 ? (950 / sw) : 1;
@@ -264,13 +267,15 @@
         document.getElementById("live-ocr-msg").textContent = "Avvio fotocamera sulla fascia...";
 
         navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false
         }).then(function (stream) {
           liveStream = stream;
           var video = document.getElementById("live-video");
           video.srcObject = stream;
-          video.play().catch(function () {});
+          video.onloadedmetadata = function () {
+            video.play().catch(function () {});
+          };
           document.getElementById("live-ocr-msg").textContent = "Allinea la data nella striscia: lettura automatica...";
           liveTimer = setInterval(function () { runLiveFrameOcr(false); }, 1600);
         }).catch(function () {
