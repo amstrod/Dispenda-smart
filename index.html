@@ -42,11 +42,12 @@
     </section>
 
     <section class="grid grid-cols-2 gap-2">
-      <button id="b-cam" type="button" class="bg-green-600 active:bg-green-800 text-white font-semibold py-3 rounded-xl text-sm">📷 Scatta e Riconosci</button>
+      <button id="b-cam-bar" type="button" class="bg-green-600 active:bg-green-800 text-white font-semibold py-3 rounded-xl text-sm">📷 Scatta Barcode</button>
       <button id="b-add" type="button" class="bg-white active:bg-slate-200 text-slate-800 font-semibold py-3 rounded-xl border border-slate-300 text-sm">➕ Aggiungi a mano</button>
     </section>
 
-    <input id="file-cam" type="file" accept="image/*" capture="environment" class="hidden" />
+    <input id="file-bar" type="file" accept="image/*" capture="environment" class="hidden" />
+    <input id="file-exp" type="file" accept="image/*" capture="environment" class="hidden" />
     <div id="reader-hidden" class="hidden"></div>
     <canvas id="work-canvas" class="hidden"></canvas>
     <canvas id="crop-canvas" class="hidden"></canvas>
@@ -59,13 +60,17 @@
     </section>
 
     <section id="box-rec" class="hidden bg-white p-4 rounded-2xl shadow border border-amber-300 space-y-2">
-      <div class="flex justify-between items-center"><span class="font-bold text-sm">Ricette suggerite</span><button id="b-rec-close" type="button" class="text-xs text-slate-500">Chiudi</button></div>
+      <div class="flex justify-between items-center"><span class="font-bold text-sm">Ricette / Idee suggerite</span><button id="b-rec-close" type="button" class="text-xs text-slate-500">Chiudi</button></div>
       <div id="rec-list" class="space-y-2 text-xs"></div>
     </section>
 
     <section id="box-form" class="hidden bg-white p-4 rounded-2xl shadow border border-slate-200 space-y-3">
       <div class="flex justify-between items-center"><span class="font-bold text-sm">Dettagli prodotto</span><button id="b-cancel" type="button" class="text-xs text-slate-500">Annulla</button></div>
       <div id="ocr-info" class="hidden text-xs bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-2 rounded-xl"></div>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="b-form-bar" type="button" class="bg-emerald-50 active:bg-emerald-100 text-emerald-900 border border-emerald-300 font-semibold py-2 rounded-xl text-xs">📷 Scatta Barcode</button>
+        <button id="b-cam-exp" type="button" class="bg-amber-50 active:bg-amber-100 text-amber-950 border border-amber-300 font-semibold py-2 rounded-xl text-xs">📅 Scatta Scadenza</button>
+      </div>
       <input id="in-name" type="text" placeholder="Nome prodotto" class="w-full border rounded-xl px-3 py-2 text-sm" />
       <div class="grid grid-cols-2 gap-2">
         <select id="in-loc" class="border rounded-xl px-3 py-2 text-sm bg-white">
@@ -90,12 +95,13 @@
         fam = (q || localStorage.getItem("ds_fam") || "CASA-BASE").toUpperCase();
         localStorage.setItem("ds_fam", fam);
       } catch (e) {}
-      var items = [], sel = [];
+      var items = [], sel = [], lastBarcode = "", lastExpiryNote = "";
       var RICETTE = [
-        { t: "Frittata svuota-frigo", ing: ["uova", "formaggio", "patate", "zucchine", "cipolla", "prosciutto"], d: "Sbatti le uova, unisci gli ingredienti a pezzetti e cuoci in padella." },
-        { t: "Pasta veloce", ing: ["pasta", "pomodoro", "passata", "tonno", "olive", "panna", "formaggio"], d: "Cuoci la pasta e condiscila con sugo, tonno o formaggio." },
-        { t: "Insalatona / Piatto freddo", ing: ["lattuga", "insalata", "pomodoro", "tonno", "mais", "mozzarella", "uova"], d: "Unisci verdure e proteine con olio e sale." },
-        { t: "Riso o zuppa", ing: ["riso", "zucchine", "zucca", "carote", "patate", "ceci", "fagioli"], d: "Cuoci insieme gli ingredienti scelti in pentola o padella." }
+        { t: "Colazione o merenda dolce", dolce: true, ing: ["biscott", "gemma", "cocco", "yogurt", "latte", "banana", "mela", "cioccolat", "miele", "cereali", "fette biscottate"], d: "Ottimo per colazione o merenda: gustalo da solo, con yogurt, latte o frutta fresca." },
+        { t: "Frittata svuota-frigo", dolce: false, ing: ["uova", "formaggio", "patate", "zucchine", "cipolla", "prosciutto", "spinaci"], d: "Sbatti le uova, unisci gli ingredienti salati a pezzetti e cuoci in padella." },
+        { t: "Pasta veloce", dolce: false, ing: ["pasta", "pomodoro", "passata", "tonno", "olive", "panna", "formaggio"], d: "Cuoci la pasta e condiscila con sugo, tonno, verdure o formaggio." },
+        { t: "Insalatona / Piatto freddo", dolce: false, ing: ["lattuga", "insalata", "pomodoro", "tonno", "mais", "mozzarella", "uova"], d: "Unisci verdure e proteine con olio e sale." },
+        { t: "Riso o zuppa salata", dolce: false, ing: ["riso", "zucchine", "zucca", "carote", "patate", "ceci", "fagioli"], d: "Cuoci insieme gli ingredienti salati in pentola o padella." }
       ];
       function key() { return "ds_items_" + fam; }
       function load() { try { var r = localStorage.getItem(key()); items = r ? JSON.parse(r) : []; } catch (e) { items = []; } }
@@ -104,18 +110,21 @@
       function defaultExp(days) { var d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().split("T")[0]; }
       function setStatus(msg) { var el = document.getElementById("scan-status"); el.textContent = msg; el.classList.remove("hidden"); }
       function hideStatus() { document.getElementById("scan-status").classList.add("hidden"); }
+      function updateFormInfo() {
+        var info = document.getElementById("ocr-info");
+        var parts = [];
+        if (lastBarcode) parts.push("Barcode: " + lastBarcode);
+        if (lastExpiryNote) parts.push(lastExpiryNote);
+        if (!parts.length) { info.classList.add("hidden"); return; }
+        info.textContent = parts.join(" • ");
+        info.classList.remove("hidden");
+      }
             function loadImageFromFile(file) {
         return new Promise(function (resolve) {
           var img = new Image();
           var url = URL.createObjectURL(file);
-          img.onload = function () {
-            URL.revokeObjectURL(url);
-            resolve(img);
-          };
-          img.onerror = function () {
-            URL.revokeObjectURL(url);
-            resolve(null);
-          };
+          img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
+          img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
           img.src = url;
         });
       }
@@ -129,27 +138,20 @@
           var adj = (gray - 128) * contrastFactor + 128;
           if (adj < 0) adj = 0;
           if (adj > 255) adj = 255;
-          d[i] = adj;
-          d[i + 1] = adj;
-          d[i + 2] = adj;
+          d[i] = adj; d[i + 1] = adj; d[i + 2] = adj;
         }
         ctx.putImageData(imgData, 0, 0);
       }
 
       function renderCanvasVariant(img, canvasId, rx, ry, rw, rh, maxW, contrast) {
         var c = document.getElementById(canvasId);
-        var sx = Math.round(img.width * rx);
-        var sy = Math.round(img.height * ry);
-        var sw = Math.max(1, Math.round(img.width * rw));
-        var sh = Math.max(1, Math.round(img.height * rh));
+        var sx = Math.round(img.width * rx), sy = Math.round(img.height * ry);
+        var sw = Math.max(1, Math.round(img.width * rw)), sh = Math.max(1, Math.round(img.height * rh));
         var scale = sw > maxW ? (maxW / sw) : 1;
         c.width = Math.max(1, Math.round(sw * scale));
         c.height = Math.max(1, Math.round(sh * scale));
-        var ctx = c.getContext("2d");
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
-        if (contrast && contrast !== 1) {
-          applyGrayContrast(c, contrast);
-        }
+        c.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+        if (contrast && contrast !== 1) applyGrayContrast(c, contrast);
         return c;
       }
 
@@ -163,31 +165,15 @@
       }
 
       function parseExpiryDate(txt) {
-        var c = (txt || "")
-          .replace(/(?:^|\s)[A-Z](?=\s|$)/g, " ")
-          .replace(/[oOQ]/g, "0")
-          .replace(/[lI|!]/g, "1")
-          .replace(/[sS]/g, "5");
-
+        var c = (txt || "").replace(/(?:^|\s)[A-Z](?=\s|$)/g, " ").replace(/[oOQ]/g, "0").replace(/[lI|!]/g, "1").replace(/[sS]/g, "5");
         var m = c.match(/\b([0-3]?\d)\s*[\/\-. ]\s*([01]?\d)\s*[\/\-. ]\s*(20\d{2}|\d{2})\b/);
-        if (m) {
-          var iso1 = validIso(parseInt(m[3], 10), parseInt(m[2], 10), parseInt(m[1], 10));
-          if (iso1) return iso1;
-        }
-
+        if (m) { var iso1 = validIso(parseInt(m[3], 10), parseInt(m[2], 10), parseInt(m[1], 10)); if (iso1) return iso1; }
         m = c.match(/\b(20\d{2}|\d{2})\s*[\/\-. ]\s*([01]?\d)\s*[\/\-. ]\s*([0-3]?\d)\b/);
-        if (m) {
-          var iso2 = validIso(parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10));
-          if (iso2) return iso2;
-        }
-
+        if (m) { var iso2 = validIso(parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)); if (iso2) return iso2; }
         m = c.match(/\b([01]?\d)\s*[\/\-.]\s*(20\d{2})\b/);
         if (m) {
           var mm = parseInt(m[1], 10), yy = parseInt(m[2], 10);
-          if (mm >= 1 && mm <= 12) {
-            var last = new Date(yy, mm, 0).getDate();
-            return yy + "-" + String(mm).padStart(2, "0") + "-" + String(last).padStart(2, "0");
-          }
+          if (mm >= 1 && mm <= 12) { var last = new Date(yy, mm, 0).getDate(); return yy + "-" + String(mm).padStart(2, "0") + "-" + String(last).padStart(2, "0"); }
         }
         return null;
       }
@@ -222,13 +208,11 @@
 
       function recognizeDateSmart(img) {
         if (!img || typeof Tesseract === "undefined") return Promise.resolve(null);
-
         var attempts = [
           function () { return renderCanvasVariant(img, "crop-canvas", 0.05, 0.05, 0.9, 0.55, 1000, 1.8); },
           function () { return renderCanvasVariant(img, "work-canvas", 0, 0, 1, 1, 1000, 1.6); },
           function () { return renderCanvasVariant(img, "crop-canvas", 0.05, 0.05, 0.9, 0.55, 1000, 2.4); }
         ];
-
         function runAt(idx) {
           if (idx >= attempts.length) return Promise.resolve(null);
           var canvas = attempts[idx]();
@@ -237,11 +221,8 @@
             var found = parseExpiryDate(raw);
             if (found) return found;
             return runAt(idx + 1);
-          }).catch(function () {
-            return runAt(idx + 1);
-          });
+          }).catch(function () { return runAt(idx + 1); });
         }
-
         return runAt(0);
       }
 
@@ -255,7 +236,7 @@
         document.getElementById("c-exp").textContent = exp;
         var box = document.getElementById("list");
         if (!items.length) {
-          box.innerHTML = '<div class="text-center py-8 bg-white rounded-2xl border border-dashed text-slate-400 text-sm">Nessun prodotto. Tocca <b>Scatta e Riconosci</b> o <b>Aggiungi a mano</b>.</div>';
+          box.innerHTML = '<div class="text-center py-8 bg-white rounded-2xl border border-dashed text-slate-400 text-sm">Nessun prodotto. Tocca <b>Scatta Barcode</b> o <b>Aggiungi a mano</b>.</div>';
           return;
         }
         box.innerHTML = items.map(function (it) {
@@ -270,39 +251,80 @@
 
       document.getElementById("b-add").addEventListener("click", function () {
         hideStatus();
-        document.getElementById("ocr-info").classList.add("hidden");
+        lastBarcode = "";
+        lastExpiryNote = "";
+        updateFormInfo();
         document.getElementById("in-name").value = "";
         document.getElementById("in-qty").value = "1";
         document.getElementById("in-exp").value = defaultExp(7);
         document.getElementById("box-form").classList.remove("hidden");
       });
 
-      document.getElementById("b-cam").addEventListener("click", function () {
-        document.getElementById("file-cam").value = "";
-        document.getElementById("file-cam").click();
-      });
+      function triggerBarcodePhoto() {
+        document.getElementById("file-bar").value = "";
+        document.getElementById("file-bar").click();
+      }
 
-      document.getElementById("file-cam").addEventListener("change", function () {
+      function triggerExpiryPhoto() {
+        document.getElementById("file-exp").value = "";
+        document.getElementById("file-exp").click();
+      }
+
+      document.getElementById("b-cam-bar").addEventListener("click", triggerBarcodePhoto);
+      document.getElementById("b-form-bar").addEventListener("click", triggerBarcodePhoto);
+      document.getElementById("b-cam-exp").addEventListener("click", triggerExpiryPhoto);
+
+      document.getElementById("file-bar").addEventListener("change", function () {
         var file = this.files && this.files[0];
         if (!file) return;
-        setStatus("Riconoscimento automatico prodotto e data in corso...");
-        Promise.all([scanBarcodeFile(file), loadImageFromFile(file)]).then(function (res) {
-          var code = res[0];
-          var img = res[1];
-          Promise.all([lookupProductName(code), recognizeDateSmart(img)]).then(function (out) {
-            var prodName = out[0];
-            var foundDate = out[1];
+        var formOpen = !document.getElementById("box-form").classList.contains("hidden");
+        setStatus("Lettura codice a barre in corso...");
+        scanBarcodeFile(file).then(function (code) {
+          lastBarcode = code || "";
+          if (!code) {
             hideStatus();
-            document.getElementById("in-name").value = prodName || "";
-            document.getElementById("in-qty").value = "1";
-            document.getElementById("in-exp").value = foundDate || defaultExp(7);
-            var info = document.getElementById("ocr-info");
-            var msg = [];
-            if (code) msg.push("Prodotto: " + (prodName || code));
-            if (foundDate) msg.push("Data riconosciuta: " + foundDate);
-            else msg.push("Data non riconosciuta: controlla o selezionala qui sotto");
-            info.textContent = msg.join(" • ");
-            info.classList.remove("hidden");
+            if (!formOpen) {
+              lastExpiryNote = "Barcode non trovato: scrivi il nome o usa Scatta Scadenza";
+              document.getElementById("in-name").value = "";
+              document.getElementById("in-qty").value = "1";
+              document.getElementById("in-exp").value = defaultExp(7);
+              updateFormInfo();
+              document.getElementById("box-form").classList.remove("hidden");
+            } else {
+              lastExpiryNote = "Barcode non trovato nella foto";
+              updateFormInfo();
+            }
+            return;
+          }
+          lookupProductName(code).then(function (prodName) {
+            hideStatus();
+            if (prodName) document.getElementById("in-name").value = prodName;
+            if (!formOpen) {
+              document.getElementById("in-qty").value = "1";
+              if (!document.getElementById("in-exp").value) document.getElementById("in-exp").value = defaultExp(7);
+            }
+            updateFormInfo();
+            document.getElementById("box-form").classList.remove("hidden");
+          });
+        });
+      });
+
+      document.getElementById("file-exp").addEventListener("change", function () {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        setStatus("Lettura data di scadenza in corso...");
+        loadImageFromFile(file).then(function (img) {
+          recognizeDateSmart(img).then(function (foundDate) {
+            hideStatus();
+            if (foundDate) {
+              document.getElementById("in-exp").value = foundDate;
+              lastExpiryNote = "Data riconosciuta: " + foundDate;
+            } else {
+              if (!document.getElementById("in-exp").value) document.getElementById("in-exp").value = defaultExp(7);
+              lastExpiryNote = "Data non riconosciuta: controlla o impostala qui sotto";
+            }
+            if (!document.getElementById("in-qty").value) document.getElementById("in-qty").value = "1";
+            updateFormInfo();
             document.getElementById("box-form").classList.remove("hidden");
           });
         });
@@ -323,12 +345,19 @@
       document.getElementById("b-rec").addEventListener("click", function () {
         var chosen = items.filter(function (x) { return sel.indexOf(x.id) >= 0; });
         if (!chosen.length) { alert("Seleziona prima almeno un prodotto dalla lista."); return; }
-        var names = chosen.map(function (x) { return x.name.toLowerCase(); });
-        var found = RICETTE.filter(function (r) { return r.ing.some(function (k) { return names.some(function (n) { return n.indexOf(k) >= 0 || k.indexOf(n) >= 0; }); }); });
+        var joinedNames = chosen.map(function (x) { return x.name.toLowerCase(); }).join(" ");
+        var isSweetSnack = /\b(biscott|gemma|cocco|cioccolat|miele|cereali|snack|dolce|wafer|brioche|croissant)\b/.test(joinedNames);
+
+        var found = RICETTE.filter(function (r) {
+          if (isSweetSnack && !r.dolce) return false;
+          if (!isSweetSnack && r.dolce) return false;
+          return r.ing.some(function (k) { return joinedNames.indexOf(k) >= 0; });
+        });
+
         var recBox = document.getElementById("box-rec"), recList = document.getElementById("rec-list");
         recBox.classList.remove("hidden");
         if (!found.length) {
-          recList.innerHTML = '<div class="p-2.5 bg-amber-50 rounded-xl">Idea rapida con <b>' + chosen.map(function (x) { return x.name; }).join(", ") + '</b>: usali per un piatto unico o contorno veloce.</div>';
+          recList.innerHTML = '<div class="p-2.5 bg-amber-50 rounded-xl">Con <b>' + chosen.map(function (x) { return x.name; }).join(", ") + '</b>: ' + (isSweetSnack ? 'ideale per una merenda o colazione veloce.' : 'puoi usarlo come base per un piatto unico o contorno.') + '</div>';
           return;
         }
         recList.innerHTML = found.map(function (r) { return '<div class="p-2.5 bg-slate-50 rounded-xl border"><div class="font-bold">' + r.t + '</div><div class="text-slate-600 mt-0.5">' + r.d + '</div></div>'; }).join("");
@@ -356,3 +385,4 @@
   </script>
 </body>
 </html>
+
