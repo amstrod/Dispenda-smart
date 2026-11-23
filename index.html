@@ -18,7 +18,6 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-28">
 
-  <!-- Header -->
   <header class="bg-green-600 text-white px-4 py-4 shadow-md sticky top-0 z-20">
     <div class="max-w-md mx-auto flex items-center justify-between gap-2">
       <div>
@@ -26,10 +25,8 @@
         <p id="family-subtitle" class="text-xs text-green-100">Gruppo: CASA-BASE • Locale</p>
       </div>
       <div class="flex items-center gap-2">
-        <div id="alert-badge" class="hidden bg-amber-400 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full">
-          0 alert
-        </div>
-        <button onclick="toggleFamilyBox()" class="bg-green-700 active:bg-green-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-green-500">
+        <div id="alert-badge" class="hidden bg-amber-400 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full">0 alert</div>
+        <button type="button" onclick="toggleFamilyBox()" class="bg-green-700 active:bg-green-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-green-500">
           👨‍👩‍👧‍👦 Famiglia
         </button>
       </div>
@@ -38,48 +35,37 @@
 
   <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
 
-    <!-- Pannello Condivisione Famiglia -->
     <section id="family-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-green-200 space-y-3">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-sm text-slate-800">Dispensa Condivisa Famiglia</h2>
-        <button onclick="toggleFamilyBox()" class="text-xs text-slate-500">Chiudi</button>
+        <button type="button" onclick="toggleFamilyBox()" class="text-xs text-slate-500">Chiudi</button>
       </div>
       <p class="text-xs text-slate-500">
-        Usa lo stesso <b>Codice Famiglia</b> sui telefoni di casa. Puoi sincronizzare in tempo reale tramite Supabase (opzionale).
+        Usa lo stesso <b>Codice Famiglia</b> sui telefoni di casa. Puoi sincronizzare tramite Supabase (opzionale).
       </p>
-
       <div class="flex gap-2">
         <input id="inp-family-code" type="text" placeholder="Es. CASA-ROSSI" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm uppercase" />
-        <button onclick="applyFamilyCode()" class="bg-green-600 active:bg-green-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl">
+        <button type="button" onclick="applyFamilyCode()" class="bg-green-600 active:bg-green-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl">
           Attiva
         </button>
       </div>
-
-      <button onclick="shareFamilyInvite()" class="w-full bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl">
+      <button type="button" onclick="shareFamilyInvite()" class="w-full bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl">
         📤 Condividi Codice / Link Famiglia
       </button>
-
       <details class="border-t border-slate-100 pt-2">
-        <summary class="text-xs font-semibold text-slate-600 cursor-pointer">
-          Cloud Sync Supabase (multi-dispositivo reale)
-        </summary>
+        <summary class="text-xs font-semibold text-slate-600 cursor-pointer">Cloud Sync Supabase (multi-dispositivo)</summary>
         <div class="mt-2 space-y-2">
           <input id="inp-sb-url" type="text" placeholder="Supabase URL (https://xxxx.supabase.co)" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs" />
           <input id="inp-sb-key" type="password" placeholder="Supabase Anon Key" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-xs" />
           <div class="flex gap-2">
-            <button onclick="saveCloudConfig()" class="flex-1 bg-slate-800 text-white text-xs font-semibold py-2 rounded-xl">
-              Salva Cloud
-            </button>
-            <button onclick="syncFromCloud()" class="flex-1 bg-green-100 text-green-800 text-xs font-semibold py-2 rounded-xl">
-              Sincronizza ora
-            </button>
+            <button type="button" onclick="saveCloudConfig()" class="flex-1 bg-slate-800 text-white text-xs font-semibold py-2 rounded-xl">Salva Cloud</button>
+            <button type="button" onclick="syncFromCloud()" class="flex-1 bg-green-100 text-green-800 text-xs font-semibold py-2 rounded-xl">Sincronizza ora</button>
           </div>
           <p id="cloud-status" class="text-[11px] text-slate-500"></p>
         </div>
       </details>
     </section>
 
-    <!-- Riepilogo rapido -->
     <section class="grid grid-cols-3 gap-2 text-center">
       <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-100">
         <div id="count-total" class="text-xl font-bold text-slate-800">0</div>
@@ -95,56 +81,51 @@
       </div>
     </section>
 
-    <!-- Pulsanti azione principali -->
     <section class="grid grid-cols-2 gap-2">
-      <button onclick="startBarcodeThenExpiry()" class="bg-green-600 active:bg-green-700 text-white font-semibold py-3 px-3 rounded-xl shadow-sm flex items-center justify-center gap-1.5 text-sm">
+      <button type="button" onclick="startBarcodeThenExpiry()" class="bg-green-600 active:bg-green-700 text-white font-semibold py-3 px-3 rounded-xl shadow-sm flex items-center justify-center gap-1.5 text-sm">
         <span>📷</span> Scansiona Tutto
       </button>
-      <button onclick="openManualForm()" class="bg-white active:bg-slate-100 text-slate-700 font-semibold py-3 px-3 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center gap-1.5 text-sm">
+      <button type="button" onclick="openManualForm()" class="bg-white active:bg-slate-100 text-slate-700 font-semibold py-3 px-3 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center gap-1.5 text-sm">
         <span>➕</span> Aggiungi a mano
       </button>
     </section>
 
-    <!-- Barra Selezione & Ricette -->
     <section class="bg-amber-50/80 border border-amber-200 rounded-2xl p-3 flex items-center justify-between gap-2">
       <div class="text-xs text-slate-700">
         <span class="font-bold" id="selected-count">0</span> ingredienti selezionati
-        <button onclick="selectExpiringSoon()" class="ml-1.5 underline text-amber-800 font-semibold">
+        <button type="button" onclick="selectExpiringSoon()" class="ml-1.5 underline text-amber-800 font-semibold">
           Seleziona in scadenza
         </button>
       </div>
-      <button onclick="suggestRecipesFromSelected()" class="bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm shrink-0">
+      <button type="button" onclick="suggestRecipesFromSelected()" class="bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl shadow-sm shrink-0">
         🍳 Ricette
       </button>
     </section>
 
-    <!-- Risultati Suggerimento Ricette -->
     <section id="recipes-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-amber-300 space-y-3">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-sm text-slate-800">🍳 Ricette con i prodotti selezionati</h2>
-        <button onclick="closeRecipesBox()" class="text-xs text-slate-500">Chiudi</button>
+        <button type="button" onclick="closeRecipesBox()" class="text-xs text-slate-500">Chiudi</button>
       </div>
       <div id="recipes-list" class="space-y-2.5"></div>
     </section>
 
-    <!-- Area Scanner Barcode -->
     <section id="scanner-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-slate-200 space-y-3">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-sm text-slate-700">Step 1/2: Inquadra il codice a barre</h2>
-        <button onclick="closeAllCameras()" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Chiudi</button>
+        <button type="button" onclick="closeAllCameras()" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Chiudi</button>
       </div>
       <div id="reader" class="w-full overflow-hidden rounded-xl bg-black min-h-[220px]"></div>
       <p id="scanner-status" class="text-xs text-center text-slate-500">Avvio fotocamera in corso...</p>
-      <button onclick="openExpiryOcrCamera()" class="w-full bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl">
+      <button type="button" onclick="openExpiryOcrCamera()" class="w-full bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl">
         Salta barcode → Leggi solo scadenza
       </button>
     </section>
 
-    <!-- Area OCR Data di Scadenza -->
     <section id="ocr-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-slate-200 space-y-3">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-sm text-slate-700">Step 2/2: Inquadra la data di scadenza</h2>
-        <button onclick="skipOcrToForm()" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Salta</button>
+        <button type="button" onclick="skipOcrToForm()" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Salta</button>
       </div>
       <p class="text-xs text-slate-500">Allinea la data nella fascia gialla e tocca <b>Leggi Data</b>.</p>
       <div class="relative w-full overflow-hidden rounded-xl bg-black aspect-[4/3]">
@@ -153,16 +134,15 @@
       </div>
       <canvas id="ocr-canvas" class="hidden"></canvas>
       <p id="ocr-status" class="text-xs text-center text-slate-600 font-medium">Fotocamera pronta</p>
-      <button id="btn-read-date" onclick="captureAndReadExpiry()" class="w-full bg-amber-500 active:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl shadow-sm">
+      <button id="btn-read-date" type="button" onclick="captureAndReadExpiry()" class="w-full bg-amber-500 active:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl shadow-sm">
         🔍 Leggi Data dalla Confezione
       </button>
     </section>
 
-    <!-- Form Aggiunta / Conferma Prodotto -->
     <section id="form-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-slate-200 space-y-3">
       <div class="flex justify-between items-center">
         <h2 class="font-bold text-base text-slate-800">Dettagli Prodotto</h2>
-        <button onclick="closeForm()" class="text-xs text-slate-500 hover:text-slate-800">Annulla</button>
+        <button type="button" onclick="closeForm()" class="text-xs text-slate-500 hover:text-slate-800">Annulla</button>
       </div>
 
       <div id="product-preview" class="hidden flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
@@ -181,6 +161,175 @@
       <div class="grid grid-cols-2 gap-2">
         <div>
           <label class="block text-xs font-medium text-slate-600 mb-1">Dove lo metti?</label>
+          <select id="inp-location" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm bg-white">
+            <option value="Frigo">❄️ Frigo</option>
+            <option value="Dispensa">🗄️ Dispensa</option>
+            <option value="Freezer">🧊 Freezer</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Quantità</label>
+          <input id="inp-qty" type="number" min="1" value="1" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm" />
+        </div>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-xs font-medium text-slate-600">Data di scadenza *</label>
+          <button type="button" onclick="openExpiryOcrCamera()" class="text-xs text-amber-700 font-semibold underline">
+            📷 Leggi con fotocamera
+          </button>
+        </div>
+        <input id="inp-expiry" type="date" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm" />
+        <div id="ocr-raw-hint" class="hidden text-[11px] text-slate-500 mt-1"></div>
+        <div class="flex gap-1.5 mt-2 flex-wrap">
+          <button type="button" onclick="setQuickDays(3)" class="text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+3 gg</button>
+          <button type="button" onclick="setQuickDays(7)" class="text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+7 gg</button>
+          <button type="button" onclick="setQuickDays(15)" class="text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+15 gg</button>
+          <button type="button" onclick="setQuickDays(30)" class="text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+1 mese</button>
+        </div>
+      </div>
+
+      <button type="button" onclick="saveProduct()" class="w-full bg-green-600 active:bg-green-700 text-white font-bold py-3 rounded-xl shadow-sm">
+        Salva in dispensa
+      </button>
+    </section>
+
+    <section class="flex gap-2 overflow-x-auto pb-1">
+      <button type="button" onclick="setFilter('Tutti')" data-filter="Tutti" class="filter-btn bg-slate-800 text-white text-xs font-semibold px-3 py-1.5 rounded-full">Tutti</button>
+      <button type="button" onclick="setFilter('Frigo')" data-filter="Frigo" class="filter-btn bg-white text-slate-600 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-full">❄️ Frigo</button>
+      <button type="button" onclick="setFilter('Dispensa')" data-filter="Dispensa" class="filter-btn bg-white text-slate-600 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-full">🗄️ Dispensa</button>
+      <button type="button" onclick="setFilter('Freezer')" data-filter="Freezer" class="filter-btn bg-white text-slate-600 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-full">🧊 Freezer</button>
+    </section>
+
+    <section id="items-list" class="space-y-2.5"></section>
+
+  </main>
+
+  <script>
+    window.onerror = function (msg, url, line) {
+      alert("Errore JS: " + msg + " (riga " + line + ")");
+    };
+
+    var familyCode = "CASA-BASE";
+    var cloudConfig = { url: "", key: "" };
+    var pantry = [];
+    var selectedIds = [];
+    var currentFilter = "Tutti";
+    var html5QrCode = null;
+    var ocrStream = null;
+    var currentImage = "";
+    var currentBarcode = "";
+    var pendingProductName = "";
+    var pendingBarcodeFound = false;
+
+    var RECIPE_CATALOG = [
+      { title: "Frittata svuota-frigo", time: "15 min", ingredients: ["uova", "formaggio", "patate", "zucchine", "cipolla", "prosciutto", "spinaci"], steps: "Sbatti le uova con sale e formaggio, aggiungi le verdure o i salumi a pezzetti e cuoci in padella coperta a fuoco dolce." },
+      { title: "Pasta al pomodoro e tonno", time: "15 min", ingredients: ["pasta", "pomodoro", "passata", "tonno", "olive", "aglio", "olio"], steps: "Cuoci la pasta al dente, salta in padella con sugo di pomodoro e tonno o olive se disponibili." },
+      { title: "Pasta cremosa con formaggio o zucchine", time: "15 min", ingredients: ["pasta", "panna", "formaggio", "zucchine", "prosciutto", "pancetta", "pepe"], steps: "Rosola gli ingredienti scelti in padella, unisci la pasta scolata con un goccio di acqua di cottura e manteca." },
+      { title: "Insalatona completa anti-spreco", time: "10 min", ingredients: ["lattuga", "insalata", "pomodoro", "tonno", "mais", "mozzarella", "uova", "cetrioli"], steps: "Taglia le verdure fresche, aggiungi proteine e condisci con olio, limone o aceto." },
+      { title: "Riso o risotto veloce", time: "20 min", ingredients: ["riso", "zucchine", "funghi", "zucca", "brodo", "formaggio", "burro"], steps: "Tosta il riso, bagna con brodo caldo aggiungendo gli ingredienti scelti e manteca a fine cottura." },
+      { title: "Toast, piadina o wrap farcito", time: "10 min", ingredients: ["pane", "piadina", "prosciutto", "formaggio", "mozzarella", "pomodoro", "lattuga"], steps: "Farcisci pane o piadina con gli ingredienti selezionati e scalda in padella o piastra." },
+      { title: "Yogurt bowl con frutta o cereali", time: "5 min", ingredients: ["yogurt", "banana", "mela", "fragole", "avena", "cereali", "miele"], steps: "Versa lo yogurt in una ciotola, aggiungi frutta fresca a pezzi e cereali o avena." },
+      { title: "Vellutata o zuppa calda", time: "25 min", ingredients: ["carote", "patate", "zucca", "zucchine", "ceci", "fagioli", "lenticchie", "brodo"], steps: "Fai bollire verdure e legumi con brodo o acqua fino a intenerirli, poi frulla o gusta a pezzi." }
+    ];
+
+    function storageKey(code) { return "dispensa_smart_family_" + code; }
+
+    function loadPantryForFamily(code) {
+      try {
+        var raw = localStorage.getItem(storageKey(code));
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) { return []; }
+    }
+
+    function updateHeaderSubtitle() {
+      var mode = (cloudConfig.url && cloudConfig.key) ? "Cloud Sync" : "Locale";
+      document.getElementById("family-subtitle").textContent = "Gruppo: " + familyCode + " • " + mode;
+    }
+
+    function toggleFamilyBox() {
+      var box = document.getElementById("family-box");
+      box.classList.toggle("hidden");
+      document.getElementById("inp-family-code").value = familyCode;
+      document.getElementById("inp-sb-url").value = cloudConfig.url || "";
+      document.getElementById("inp-sb-key").value = cloudConfig.key || "";
+    }
+
+    function applyFamilyCode() {
+      var val = (document.getElementById("inp-family-code").value || "").trim().toUpperCase();
+      if (!val) { alert("Inserisci un codice famiglia."); return; }
+      familyCode = val;
+      try { localStorage.setItem("dispensa_family_code", familyCode); } catch (e) {}
+      pantry = loadPantryForFamily(familyCode);
+      selectedIds = [];
+      updateHeaderSubtitle();
+      render();
+      if (cloudConfig.url && cloudConfig.key) syncFromCloud();
+      alert("Gruppo famiglia impostato su: " + familyCode);
+    }
+
+    function shareFamilyInvite() {
+      var shareUrl = window.location.origin + window.location.pathname + "?family=" + encodeURIComponent(familyCode);
+      var msg = 'Unisciti alla dispensa condivisa "' + familyCode + '" su DispensaSmart: ' + shareUrl;
+      if (navigator.share) {
+        navigator.share({ title: "DispensaSmart Famiglia", text: msg, url: shareUrl }).catch(function () {});
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(function () {
+          alert("Link copiato negli appunti:\n" + shareUrl);
+        }, function () { alert(msg); });
+      } else {
+        alert(msg);
+      }
+    }
+
+    function saveCloudConfig() {
+      var url = (document.getElementById("inp-sb-url").value || "").trim().replace(/\/+$/, "");
+      var key = (document.getElementById("inp-sb-key").value || "").trim();
+      cloudConfig = { url: url, key: key };
+      try { localStorage.setItem("dispensa_sb_config", JSON.stringify(cloudConfig)); } catch (e) {}
+      updateHeaderSubtitle();
+      document.getElementById("cloud-status").textContent = (url && key)
+        ? 'Configurazione cloud salvata. Tocca "Sincronizza ora".'
+        : "Cloud disattivato (modalità locale attiva).";
+    }
+
+    function pushToCloud() {
+      if (!cloudConfig.url || !cloudConfig.key) return;
+      fetch(cloudConfig.url + "/rest/v1/family_pantries?on_conflict=family_code", {
+        method: "POST",
+        headers: {
+          "apikey": cloudConfig.key,
+          "Authorization": "Bearer " + cloudConfig.key,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify([{ family_code: familyCode, items: pantry, updated_at: new Date().toISOString() }])
+      }).then(function () {
+        document.getElementById("cloud-status").textContent = "Sincronizzato sul cloud (" + new Date().toLocaleTimeString("it-IT") + ")";
+      }).catch(function () {
+        document.getElementById("cloud-status").textContent = "Errore invio al cloud (dati salvati in locale).";
+      });
+    }
+
+    function syncFromCloud() {
+      if (!cloudConfig.url || !cloudConfig.key) { alert("Inserisci prima URL e Anon Key di Supabase."); return; }
+      fetch(cloudConfig.url + "/rest/v1/family_pantries?family_code=eq." + encodeURIComponent(familyCode) + "&select=items", {
+        headers: { "apikey": cloudConfig.key, "Authorization": "Bearer " + cloudConfig.key }
+      }).then(function (r) { return r.json(); }).then(function (rows) {
+        if (Array.isArray(rows) && rows.length > 0 && Array.isArray(rows[0].items)) {
+          pantry = rows[0].items;
+          try { localStorage.setItem(storageKey(familyCode), JSON.stringify(pantry)); } catch (e) {}
+          selectedIds = [];
+          render();
+          document.getElementById("cloud-status").textContent = "Aggiornato dal cloud (" + new Date().toLocaleTimeString("it-IT") + ")";
+        } else {
+          pushToCloud();
+        }
+      }).catch(function () {
+        document.getElementById("cloud-status").textContent = "Imock text-xs font-medium text-slate-600 mb-1">Dove lo metti?</label>
           <select id="inp-location" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm bg-white">
             <option value="Frigo">❄️ Frigo</option>
             <option value="Dispensa">🗄️ Dispensa</option>
