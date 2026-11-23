@@ -120,50 +120,43 @@
         });
       }
 
-      function boostContrastOnCanvas(canvas, threshold) {
+      function applyGrayContrast(canvas, contrastFactor) {
         var ctx = canvas.getContext("2d");
         var imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         var d = imgData.data;
         for (var i = 0; i < d.length; i += 4) {
           var gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-          var val = gray < threshold ? 0 : 255;
-          d[i] = val;
-          d[i + 1] = val;
-          d[i + 2] = val;
+          var adj = (gray - 128) * contrastFactor + 128;
+          if (adj < 0) adj = 0;
+          if (adj > 255) adj = 255;
+          d[i] = adj;
+          d[i + 1] = adj;
+          d[i + 2] = adj;
         }
         ctx.putImageData(imgData, 0, 0);
       }
 
-      function prepareOcrCanvases(img) {
-        if (!img) return [];
-        var list = [];
-
-        var c1 = document.getElementById("work-canvas");
-        var scale1 = img.width > 1000 ? (1000 / img.width) : 1;
-        c1.width = Math.round(img.width * scale1);
-        c1.height = Math.round(img.height * scale1);
-        c1.getContext("2d").drawImage(img, 0, 0, c1.width, c1.height);
-        boostContrastOnCanvas(c1, 155);
-        list.push(c1);
-
-        var c2 = document.getElementById("crop-canvas");
-        var sx = Math.round(img.width * 0.1);
-        var sy = Math.round(img.height * 0.08);
-        var sw = Math.round(img.width * 0.8);
-        var sh = Math.round(img.height * 0.45);
-        c2.width = Math.min(900, sw);
-        c2.height = Math.round(c2.width * (sh / sw));
-        c2.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, c2.width, c2.height);
-        boostContrastOnCanvas(c2, 165);
-        list.push(c2);
-
-        return list;
+      function renderCanvasVariant(img, canvasId, rx, ry, rw, rh, maxW, contrast) {
+        var c = document.getElementById(canvasId);
+        var sx = Math.round(img.width * rx);
+        var sy = Math.round(img.height * ry);
+        var sw = Math.max(1, Math.round(img.width * rw));
+        var sh = Math.max(1, Math.round(img.height * rh));
+        var scale = sw > maxW ? (maxW / sw) : 1;
+        c.width = Math.max(1, Math.round(sw * scale));
+        c.height = Math.max(1, Math.round(sh * scale));
+        var ctx = c.getContext("2d");
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+        if (contrast && contrast !== 1) {
+          applyGrayContrast(c, contrast);
+        }
+        return c;
       }
 
       function validIso(y, m, d) {
         if (m < 1 || m > 12 || d < 1 || d > 31) return null;
         if (y < 100) y += 2000;
-        if (y < 2024 || y > 2038) return null;
+        if (y < 2020 || y > 2045) return null;
         var dt = new Date(y, m - 1, d);
         if (dt.getFullYear() !== y || dt.getMonth() !== (m - 1) || dt.getDate() !== d) return null;
         return y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
@@ -182,7 +175,7 @@
           if (iso1) return iso1;
         }
 
-        m = c.match(/\b(20\d{2})\s*[\/\-. ]\s*([01]?\d)\s*[\/\-. ]\s*([0-3]?\d)\b/);
+        m = c.match(/\b(20\d{2}|\d{2})\s*[\/\-. ]\s*([01]?\d)\s*[\/\-. ]\s*([0-3]?\d)\b/);
         if (m) {
           var iso2 = validIso(parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10));
           if (iso2) return iso2;
@@ -227,20 +220,29 @@
           }).catch(function () { return "Barcode " + code; });
       }
 
-      function recognizeDateFromCanvases(canvases) {
-        if (!canvases || !canvases.length || typeof Tesseract === "undefined") return Promise.resolve(null);
-        function step(idx) {
-          if (idx >= canvases.length) return Promise.resolve(null);
-          return Tesseract.recognize(canvases[idx], "eng", { logger: function () {} }).then(function (res) {
+      function recognizeDateSmart(img) {
+        if (!img || typeof Tesseract === "undefined") return Promise.resolve(null);
+
+        var attempts = [
+          function () { return renderCanvasVariant(img, "crop-canvas", 0.05, 0.05, 0.9, 0.55, 1000, 1.8); },
+          function () { return renderCanvasVariant(img, "work-canvas", 0, 0, 1, 1, 1000, 1.6); },
+          function () { return renderCanvasVariant(img, "crop-canvas", 0.05, 0.05, 0.9, 0.55, 1000, 2.4); }
+        ];
+
+        function runAt(idx) {
+          if (idx >= attempts.length) return Promise.resolve(null);
+          var canvas = attempts[idx]();
+          return Tesseract.recognize(canvas, "eng", { logger: function () {} }).then(function (res) {
             var raw = (res && res.data && res.data.text) ? res.data.text : "";
             var found = parseExpiryDate(raw);
             if (found) return found;
-            return step(idx + 1);
+            return runAt(idx + 1);
           }).catch(function () {
-            return step(idx + 1);
+            return runAt(idx + 1);
           });
         }
-        return step(0);
+
+        return runAt(0);
       }
 
       function render() {
@@ -287,8 +289,7 @@
         Promise.all([scanBarcodeFile(file), loadImageFromFile(file)]).then(function (res) {
           var code = res[0];
           var img = res[1];
-          var canvases = prepareOcrCanvases(img);
-          Promise.all([lookupProductName(code), recognizeDateFromCanvases(canvases)]).then(function (out) {
+          Promise.all([lookupProductName(code), recognizeDateSmart(img)]).then(function (out) {
             var prodName = out[0];
             var foundDate = out[1];
             hideStatus();
