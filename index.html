@@ -9,9 +9,11 @@
   <title>DispensaSmart - Zero Sprechi</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     body { -webkit-tap-highlight-color: transparent; }
     #reader video { border-radius: 0.75rem; object-fit: cover; }
+    #ocr-video { border-radius: 0.75rem; object-fit: cover; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-24">
@@ -21,7 +23,7 @@
     <div class="max-w-md mx-auto flex items-center justify-between">
       <div>
         <h1 class="text-xl font-bold tracking-tight">DispensaSmart</h1>
-        <p class="text-xs text-green-100">Scansiona, controlla, zero sprechi</p>
+        <p class="text-xs text-green-100">Scansiona barcode e data, zero sprechi</p>
       </div>
       <div id="alert-badge" class="hidden bg-amber-400 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-full">
         0 in scadenza
@@ -49,22 +51,43 @@
 
     <!-- Pulsanti azione principali -->
     <section class="grid grid-cols-2 gap-2">
-      <button onclick="openScanner()" class="bg-green-600 active:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm flex items-center justify-center gap-2">
-        <span>📷</span> Scansiona Barcode
+      <button onclick="startBarcodeThenExpiry()" class="bg-green-600 active:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm flex items-center justify-center gap-2 text-sm">
+        <span>📷</span> Scansiona Tutto
       </button>
-      <button onclick="openManualForm()" class="bg-white active:bg-slate-100 text-slate-700 font-semibold py-3 px-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center gap-2">
+      <button onclick="openManualForm()" class="bg-white active:bg-slate-100 text-slate-700 font-semibold py-3 px-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-center gap-2 text-sm">
         <span>➕</span> Aggiungi a mano
       </button>
     </section>
 
-    <!-- Area Scanner Fotocamera -->
+    <!-- Area Scanner Barcode -->
     <section id="scanner-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-slate-200 space-y-3">
       <div class="flex justify-between items-center">
-        <h2 class="font-bold text-sm text-slate-700">Inquadra il codice a barre</h2>
-        <button onclick="closeScanner()" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Chiudi</button>
+        <h2 class="font-bold text-sm text-slate-700">Step 1/2: Inquadra il codice a barre</h2>
+        <button onclick="closeAllCameras()" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Chiudi</button>
       </div>
       <div id="reader" class="w-full overflow-hidden rounded-xl bg-black min-h-[220px]"></div>
       <p id="scanner-status" class="text-xs text-center text-slate-500">Avvio fotocamera in corso...</p>
+      <button onclick="openExpiryOcrCamera()" class="w-full bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl">
+        Salta barcode → Leggi solo scadenza
+      </button>
+    </section>
+
+    <!-- Area OCR Data di Scadenza -->
+    <section id="ocr-box" class="hidden bg-white p-4 rounded-2xl shadow-md border border-slate-200 space-y-3">
+      <div class="flex justify-between items-center">
+        <h2 class="font-bold text-sm text-slate-700">Step 2/2: Inquadra la data di scadenza</h2>
+        <button onclick="skipOcrToForm()" class="text-xs bg-slate-200 px-2.5 py-1 rounded-lg font-medium">Salta</button>
+      </div>
+      <p class="text-xs text-slate-500">Avvicina la fotocamera alla data stampata sulla confezione, poi tocca <b>Leggi Data</b>.</p>
+      <div class="relative w-full overflow-hidden rounded-xl bg-black aspect-[4/3]">
+        <video id="ocr-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
+        <div class="pointer-events-none absolute inset-x-4 top-1/2 -translate-y-1/2 h-14 border-2 border-amber-400 rounded-lg bg-amber-400/10"></div>
+      </div>
+      <canvas id="ocr-canvas" class="hidden"></canvas>
+      <p id="ocr-status" class="text-xs text-center text-slate-600 font-medium">Fotocamera pronta</p>
+      <button id="btn-read-date" onclick="captureAndReadExpiry()" class="w-full bg-amber-500 active:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl shadow-sm">
+        🔍 Leggi Data dalla Confezione
+      </button>
     </section>
 
     <!-- Form Aggiunta / Conferma Prodotto -->
@@ -103,8 +126,14 @@
       </div>
 
       <div>
-        <label class="block text-xs font-medium text-slate-600 mb-1">Data di scadenza *</label>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-xs font-medium text-slate-600">Data di scadenza *</label>
+          <button type="button" onclick="openExpiryOcrCamera()" class="text-xs text-amber-700 font-semibold underline">
+            📷 Rileggi con fotocamera
+          </button>
+        </div>
         <input id="inp-expiry" type="date" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm" />
+        <div id="ocr-raw-hint" class="hidden text-[11px] text-slate-500 mt-1"></div>
         <div class="flex gap-1.5 mt-2 flex-wrap">
           <button type="button" onclick="setQuickDays(3)" class="text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+3 gg</button>
           <button type="button" onclick="setQuickDays(7)" class="text-xs bg-slate-100 active:bg-slate-200 px-2.5 py-1.5 rounded-lg font-medium">+7 gg</button>
@@ -135,8 +164,11 @@
     let pantry = JSON.parse(localStorage.getItem('dispensa_smart_v1') || '[]');
     let currentFilter = 'Tutti';
     let html5QrCode = null;
+    let ocrStream = null;
     let currentImage = '';
     let currentBarcode = '';
+    let pendingProductName = '';
+    let pendingBarcodeFound = false;
 
     function saveStorage() {
       localStorage.setItem('dispensa_smart_v1', JSON.stringify(pantry));
@@ -157,10 +189,13 @@
     }
 
     function openManualForm() {
-      closeScanner();
+      closeAllCameras();
       currentImage = '';
       currentBarcode = '';
+      pendingProductName = '';
+      pendingBarcodeFound = false;
       document.getElementById('product-preview').classList.add('hidden');
+      document.getElementById('ocr-raw-hint').classList.add('hidden');
       document.getElementById('inp-name').value = '';
       document.getElementById('inp-qty').value = 1;
       setQuickDays(7);
@@ -171,8 +206,38 @@
       document.getElementById('form-box').classList.add('hidden');
     }
 
-    async function openScanner() {
+    async function stopBarcodeCamera() {
+      document.getElementById('scanner-box').classList.add('hidden');
+      if (html5QrCode) {
+        try {
+          await html5QrCode.stop();
+          html5QrCode.clear();
+        } catch (e) {}
+        html5QrCode = null;
+      }
+    }
+
+    function stopOcrCamera() {
+      document.getElementById('ocr-box').classList.add('hidden');
+      if (ocrStream) {
+        ocrStream.getTracks().forEach(track => track.stop());
+        ocrStream = null;
+      }
+    }
+
+    async function closeAllCameras() {
+      await stopBarcodeCamera();
+      stopOcrCamera();
+    }
+
+    async function startBarcodeThenExpiry() {
       closeForm();
+      stopOcrCamera();
+      currentImage = '';
+      currentBarcode = '';
+      pendingProductName = '';
+      pendingBarcodeFound = false;
+
       const box = document.getElementById('scanner-box');
       const status = document.getElementById('scanner-status');
       box.classList.remove('hidden');
@@ -185,52 +250,175 @@
           { fps: 10, qrbox: { width: 250, height: 140 } },
           async (decodedText) => {
             status.textContent = `Codice letto: ${decodedText}. Ricerca prodotto...`;
-            await closeScanner();
+            await stopBarcodeCamera();
             await lookupBarcode(decodedText);
+            await openExpiryOcrCamera();
           }
         );
         status.textContent = 'Punta il codice a barre dentro il riquadro';
       } catch (err) {
-        status.textContent = 'Impossibile aprire la fotocamera (serve HTTPS). Usa "Aggiungi a mano".';
-      }
-    }
-
-    async function closeScanner() {
-      const box = document.getElementById('scanner-box');
-      box.classList.add('hidden');
-      if (html5QrCode) {
-        try {
-          await html5QrCode.stop();
-          html5QrCode.clear();
-        } catch (e) {}
-        html5QrCode = null;
+        status.textContent = 'Fotocamera non disponibile qui. Puoi usare "Leggi solo scadenza" o "Aggiungi a mano".';
       }
     }
 
     async function lookupBarcode(code) {
-      openManualForm();
       currentBarcode = code;
-      document.getElementById('inp-name').value = 'Ricerca in corso...';
-
+      pendingBarcodeFound = true;
       try {
         const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
         const data = await res.json();
         if (data.status === 1 && data.product) {
           const name = data.product.product_name_it || data.product.product_name || '';
           const brand = data.product.brands ? ` (${data.product.brands})` : '';
-          document.getElementById('inp-name').value = (name + brand).trim() || `Prodotto ${code}`;
+          pendingProductName = (name + brand).trim() || `Prodotto ${code}`;
           if (data.product.image_front_small_url) {
             currentImage = data.product.image_front_small_url;
-            document.getElementById('preview-img').src = currentImage;
-            document.getElementById('preview-barcode').textContent = `Barcode: ${code}`;
-            document.getElementById('product-preview').classList.remove('hidden');
           }
         } else {
-          document.getElementById('inp-name').value = '';
-          document.getElementById('inp-name').placeholder = `Codice ${code} non trovato, scrivi il nome`;
+          pendingProductName = '';
         }
       } catch (e) {
-        document.getElementById('inp-name').value = '';
+        pendingProductName = '';
+      }
+    }
+
+    async function openExpiryOcrCamera() {
+      closeForm();
+      await stopBarcodeCamera();
+      const box = document.getElementById('ocr-box');
+      const status = document.getElementById('ocr-status');
+      const video = document.getElementById('ocr-video');
+      box.classList.remove('hidden');
+      status.textContent = 'Avvio fotocamera per la data...';
+
+      try {
+        ocrStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        video.srcObject = ocrStream;
+        await video.play();
+        status.textContent = 'Allinea la data nella fascia gialla e tocca "Leggi Data"';
+      } catch (err) {
+        status.textContent = 'Impossibile aprire la fotocamera. Puoi saltare e inserire la data a mano.';
+      }
+    }
+
+    function skipOcrToForm() {
+      stopOcrCamera();
+      showFormWithData(null, '');
+    }
+
+    function parseDateFromText(rawText) {
+      const cleaned = rawText
+        .replace(/[oO]/g, '0')
+        .replace(/[lI|]/g, '1');
+
+      // 1) GG/MM/AAAA o GG-MM-AAAA o GG.MM.AAAA (anche anno a 2 cifre)
+      let match = cleaned.match(/\b([0-3]?\d)[\/\-.]([01]?\d)[\/\-.](\d{4}|\d{2})\b/);
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10);
+        let year = parseInt(match[3], 10);
+        if (year < 100) year += 2000;
+        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+        }
+      }
+
+      // 2) AAAA-MM-GG o AAAA/MM/GG
+      match = cleaned.match(/\b(\d{4})[\/\-.]([01]?\d)[\/\-.]([0-3]?\d)\b/);
+      if (match) {
+        const year = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10);
+        const day = parseInt(match[3], 10);
+        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          if (!isNaN(new Date(iso + 'T00:00:00').getTime())) return iso;
+        }
+      }
+
+      // 3) MM/AAAA o MM-AAAA -> usa l'ultimo giorno del mese
+      match = cleaned.match(/\b([01]?\d)[\/\-.](20\d{2})\b/);
+      if (match) {
+        const month = parseInt(match[1], 10);
+        const year = parseInt(match[2], 10);
+        if (month >= 1 && month <= 12) {
+          const lastDay = new Date(year, month, 0).getDate();
+          return `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        }
+      }
+
+      return null;
+    }
+
+    async function captureAndReadExpiry() {
+      const video = document.getElementById('ocr-video');
+      const canvas = document.getElementById('ocr-canvas');
+      const status = document.getElementById('ocr-status');
+      const btn = document.getElementById('btn-read-date');
+
+      if (!video.videoWidth || !video.videoHeight) {
+        status.textContent = 'Attendi qualche istante che il video sia pronto...';
+        return;
+      }
+
+      btn.disabled = true;
+      status.textContent = 'Lettura testo in corso...';
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      try {
+        const result = await Tesseract.recognize(canvas, 'eng+ita', {
+          logger: () => {}
+        });
+        const text = (result && result.data && result.data.text) ? result.data.text.trim() : '';
+        const detectedIso = parseDateFromText(text);
+
+        stopOcrCamera();
+        showFormWithData(detectedIso, text);
+      } catch (e) {
+        status.textContent = 'Errore durante la lettura. Apro il modulo manuale...';
+        stopOcrCamera();
+        showFormWithData(null, '');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function showFormWithData(detectedIso, rawText) {
+      document.getElementById('form-box').classList.remove('hidden');
+      const preview = document.getElementById('product-preview');
+      const nameInput = document.getElementById('inp-name');
+      const expiryInput = document.getElementById('inp-expiry');
+      const hint = document.getElementById('ocr-raw-hint');
+
+      if (currentImage || pendingBarcodeFound) {
+        preview.classList.remove('hidden');
+        document.getElementById('preview-img').src = currentImage || 'https://placehold.co/64x64?text=Food';
+        document.getElementById('preview-barcode').textContent = `Barcode: ${currentBarcode}`;
+        nameInput.value = pendingProductName;
+        nameInput.placeholder = pendingProductName ? '' : `Codice ${currentBarcode} non trovato, scrivi il nome`;
+      } else {
+        preview.classList.add('hidden');
+      }
+
+      if (detectedIso) {
+        expiryInput.value = detectedIso;
+        hint.textContent = `Data rilevata automaticamente: ${detectedIso.split('-').reverse().join('/')}`;
+        hint.classList.remove('hidden');
+      } else {
+        if (!expiryInput.value) setQuickDays(7);
+        if (rawText) {
+          hint.textContent = `Testo letto: "${rawText.slice(0, 50)}" — verifica o scegli la data.`;
+          hint.classList.remove('hidden');
+        } else {
+          hint.classList.add('hidden');
+        }
       }
     }
 
@@ -270,96 +458,4 @@
         if (btn.dataset.filter === filter) {
           btn.className = 'filter-btn bg-slate-800 text-white text-xs font-semibold px-3 py-1.5 rounded-full';
         } else {
-          btn.className = 'filter-btn bg-white text-slate-600 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-full';
-        }
-      });
-      render();
-    }
-
-    function render() {
-      const list = document.getElementById('items-list');
-      let expiredCount = 0;
-      let soonCount = 0;
-
-      pantry.forEach(item => {
-        const d = getDaysLeft(item.expiry);
-        if (d < 0) expiredCount++;
-        else if (d <= 3) soonCount++;
-      });
-
-      document.getElementById('count-total').textContent = pantry.length;
-      document.getElementById('count-soon').textContent = soonCount;
-      document.getElementById('count-expired').textContent = expiredCount;
-
-      const badge = document.getElementById('alert-badge');
-      const urgent = expiredCount + soonCount;
-      if (urgent > 0) {
-        badge.textContent = `${urgent} alert`;
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
-      }
-
-      const filtered = pantry
-        .filter(item => currentFilter === 'Tutti' || item.location === currentFilter)
-        .sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
-
-      if (filtered.length === 0) {
-        list.innerHTML = `
-          <div class="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400 text-sm">
-            Nessun prodotto qui.<br/>Tocca <b>Scansiona Barcode</b> per iniziare!
-          </div>`;
-        return;
-      }
-
-      list.innerHTML = filtered.map(item => {
-        const days = getDaysLeft(item.expiry);
-        let statusClass = 'bg-green-100 text-green-800';
-        let statusText = `Tra ${days} gg`;
-        let borderClass = 'border-slate-100';
-
-        if (days < 0) {
-          statusClass = 'bg-red-100 text-red-800';
-          statusText = `Scaduto da ${Math.abs(days)} gg`;
-          borderClass = 'border-red-300';
-        } else if (days === 0) {
-          statusClass = 'bg-red-100 text-red-800';
-          statusText = 'Scade OGGI';
-          borderClass = 'border-red-300';
-        } else if (days <= 3) {
-          statusClass = 'bg-amber-100 text-amber-800';
-          statusText = days === 1 ? 'Scade domani' : `Tra ${days} gg`;
-          borderClass = 'border-amber-300';
-        }
-
-        const thumb = item.image
-          ? `<img src="${item.image}" class="w-11 h-11 rounded-lg object-contain bg-slate-50 border border-slate-100 shrink-0" />`
-          : `<div class="w-11 h-11 rounded-lg bg-slate-100 flex items-center justify-center text-lg shrink-0">🥫</div>`;
-
-        return `
-          <div class="bg-white p-3 rounded-xl shadow-sm border ${borderClass} flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              ${thumb}
-              <div class="min-w-0">
-                <div class="font-semibold text-sm text-slate-800 truncate">${item.name}</div>
-                <div class="text-xs text-slate-500 mt-0.5">
-                  ${item.location} • Q.tà: ${item.qty} • Scad: ${item.expiry.split('-').reverse().join('/')}
-                </div>
-                <span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${statusClass}">
-                  ${statusText}
-                </span>
-              </div>
-            </div>
-            <button onclick="removeProduct('${item.id}')" title="Consumato" class="bg-slate-100 active:bg-green-600 active:text-white text-slate-600 text-xs font-semibold px-3 py-2 rounded-lg shrink-0">
-              ✓ Usato
-            </button>
-          </div>
-        `;
-      }).join('');
-    }
-
-    render();
-  </script>
-</body>
-  </html>
-  
+          btn.className = 'filter-btn bg-white text-slate-600 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-f
