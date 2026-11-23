@@ -7,6 +7,8 @@
   <link rel="manifest" href="./manifest.json" />
   <title>DispensaSmart Famiglia</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-24">
 
@@ -16,14 +18,11 @@
         <h1 class="text-xl font-bold">DispensaSmart</h1>
         <p id="sub-fam" class="text-xs text-green-100">Gruppo: CASA-BASE</p>
       </div>
-      <button id="b-fam" type="button" class="bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-green-500">
-        Famiglia
-      </button>
+      <button id="b-fam" type="button" class="bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg border border-green-500">Famiglia</button>
     </div>
   </header>
 
   <main class="max-w-md mx-auto px-4 pt-4 space-y-4">
-
     <section id="box-fam" class="hidden bg-white p-4 rounded-2xl shadow border border-green-200 space-y-2.5">
       <div class="flex justify-between items-center">
         <span class="font-bold text-sm">Codice Famiglia</span>
@@ -33,58 +32,39 @@
         <input id="in-fam" type="text" placeholder="ES. CASA-ROSSI" class="flex-1 border rounded-xl px-3 py-2 text-sm uppercase" />
         <button id="b-fam-ok" type="button" class="bg-green-600 text-white text-xs font-bold px-4 py-2 rounded-xl">Salva</button>
       </div>
-      <button id="b-fam-share" type="button" class="w-full bg-slate-100 text-slate-700 text-xs font-semibold py-2 rounded-xl">
-        Condividi Link Famiglia
-      </button>
+      <button id="b-fam-share" type="button" class="w-full bg-slate-100 text-slate-700 text-xs font-semibold py-2 rounded-xl">Condividi Link Famiglia</button>
     </section>
 
     <section class="grid grid-cols-3 gap-2 text-center">
-      <div class="bg-white p-3 rounded-xl shadow-sm border">
-        <div id="c-tot" class="text-xl font-bold">0</div>
-        <div class="text-xs text-slate-500">Totale</div>
-      </div>
-      <div class="bg-amber-50 p-3 rounded-xl shadow-sm border border-amber-200">
-        <div id="c-soon" class="text-xl font-bold text-amber-600">0</div>
-        <div class="text-xs text-amber-700">In scadenza</div>
-      </div>
-      <div class="bg-red-50 p-3 rounded-xl shadow-sm border border-red-200">
-        <div id="c-exp" class="text-xl font-bold text-red-600">0</div>
-        <div class="text-xs text-red-700">Scaduti</div>
-      </div>
+      <div class="bg-white p-3 rounded-xl shadow-sm border"><div id="c-tot" class="text-xl font-bold">0</div><div class="text-xs text-slate-500">Totale</div></div>
+      <div class="bg-amber-50 p-3 rounded-xl shadow-sm border border-amber-200"><div id="c-soon" class="text-xl font-bold text-amber-600">0</div><div class="text-xs text-amber-700">In scadenza</div></div>
+      <div class="bg-red-50 p-3 rounded-xl shadow-sm border border-red-200"><div id="c-exp" class="text-xl font-bold text-red-600">0</div><div class="text-xs text-red-700">Scaduti</div></div>
     </section>
 
     <section class="grid grid-cols-2 gap-2">
-      <button id="b-cam" type="button" class="bg-green-600 active:bg-green-800 text-white font-semibold py-3 rounded-xl text-sm">
-        📷 Foto / Scadenza
-      </button>
-      <button id="b-add" type="button" class="bg-white active:bg-slate-200 text-slate-800 font-semibold py-3 rounded-xl border border-slate-300 text-sm">
-        ➕ Aggiungi a mano
-      </button>
+      <button id="b-cam" type="button" class="bg-green-600 active:bg-green-800 text-white font-semibold py-3 rounded-xl text-sm">📷 Scatta e Riconosci</button>
+      <button id="b-add" type="button" class="bg-white active:bg-slate-200 text-slate-800 font-semibold py-3 rounded-xl border border-slate-300 text-sm">➕ Aggiungi a mano</button>
     </section>
 
     <input id="file-cam" type="file" accept="image/*" capture="environment" class="hidden" />
+    <div id="reader-hidden" class="hidden"></div>
+
+    <div id="scan-status" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs px-3.5 py-2.5 rounded-xl font-medium"></div>
 
     <section class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between gap-2">
       <span class="text-xs"><b id="c-sel">0</b> selezionati</span>
-      <button id="b-rec" type="button" class="bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl">
-        🍳 Proponi Ricette
-      </button>
+      <button id="b-rec" type="button" class="bg-amber-500 active:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl">🍳 Proponi Ricette</button>
     </section>
 
     <section id="box-rec" class="hidden bg-white p-4 rounded-2xl shadow border border-amber-300 space-y-2">
-      <div class="flex justify-between items-center">
-        <span class="font-bold text-sm">Ricette suggerite</span>
-        <button id="b-rec-close" type="button" class="text-xs text-slate-500">Chiudi</button>
-      </div>
+      <div class="flex justify-between items-center"><span class="font-bold text-sm">Ricette suggerite</span><button id="b-rec-close" type="button" class="text-xs text-slate-500">Chiudi</button></div>
       <div id="rec-list" class="space-y-2 text-xs"></div>
     </section>
 
     <section id="box-form" class="hidden bg-white p-4 rounded-2xl shadow border border-slate-200 space-y-3">
-      <div class="flex justify-between items-center">
-        <span class="font-bold text-sm">Nuovo prodotto</span>
-        <button id="b-cancel" type="button" class="text-xs text-slate-500">Annulla</button>
-      </div>
-      <input id="in-name" type="text" placeholder="Nome (es. Uova, Pasta, Latte...)" class="w-full border rounded-xl px-3 py-2 text-sm" />
+      <div class="flex justify-between items-center"><span class="font-bold text-sm">Verifica / Dettagli prodotto</span><button id="b-cancel" type="button" class="text-xs text-slate-500">Annulla</button></div>
+      <div id="ocr-info" class="hidden text-[11px] bg-slate-100 text-slate-600 px-2.5 py-1.5 rounded-lg"></div>
+      <input id="in-name" type="text" placeholder="Nome prodotto" class="w-full border rounded-xl px-3 py-2 text-sm" />
       <div class="grid grid-cols-2 gap-2">
         <select id="in-loc" class="border rounded-xl px-3 py-2 text-sm bg-white">
           <option value="Frigo">Frigo</option>
@@ -94,9 +74,7 @@
         <input id="in-qty" type="number" min="1" value="1" class="border rounded-xl px-3 py-2 text-sm" />
       </div>
       <input id="in-exp" type="date" class="w-full border rounded-xl px-3 py-2 text-sm" />
-      <button id="b-save" type="button" class="w-full bg-green-600 active:bg-green-700 text-white font-bold py-2.5 rounded-xl text-sm">
-        Salva prodotto
-      </button>
+      <button id="b-save" type="button" class="w-full bg-green-600 active:bg-green-700 text-white font-bold py-2.5 rounded-xl text-sm">Salva prodotto</button>
     </section>
 
     <section id="list" class="space-y-2"></section>
@@ -110,36 +88,86 @@
         fam = (q || localStorage.getItem("ds_fam") || "CASA-BASE").toUpperCase();
         localStorage.setItem("ds_fam", fam);
       } catch (e) {}
-
-      var items = [];
-      var sel = [];
-
+      var items = [], sel = [];
       var RICETTE = [
         { t: "Frittata svuota-frigo", ing: ["uova", "formaggio", "patate", "zucchine", "cipolla", "prosciutto"], d: "Sbatti le uova, unisci gli ingredienti a pezzetti e cuoci in padella." },
         { t: "Pasta veloce", ing: ["pasta", "pomodoro", "passata", "tonno", "olive", "panna", "formaggio"], d: "Cuoci la pasta e condiscila con sugo, tonno o formaggio." },
         { t: "Insalatona / Piatto freddo", ing: ["lattuga", "insalata", "pomodoro", "tonno", "mais", "mozzarella", "uova"], d: "Unisci verdure e proteine con olio e sale." },
         { t: "Riso o zuppa", ing: ["riso", "zucchine", "zucca", "carote", "patate", "ceci", "fagioli"], d: "Cuoci insieme gli ingredienti scelti in pentola o padella." }
       ];
-
       function key() { return "ds_items_" + fam; }
       function load() { try { var r = localStorage.getItem(key()); items = r ? JSON.parse(r) : []; } catch (e) { items = []; } }
       function save() { try { localStorage.setItem(key(), JSON.stringify(items)); } catch (e) {} render(); }
       function daysLeft(s) { var t = new Date(); t.setHours(0, 0, 0, 0); var e = new Date(s + "T00:00:00"); return Math.round((e - t) / 86400000); }
       function defaultExp(days) { var d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().split("T")[0]; }
-          function render() {
+      function setStatus(msg) { var el = document.getElementById("scan-status"); el.textContent = msg; el.classList.remove("hidden"); }
+      function hideStatus() { document.getElementById("scan-status").classList.add("hidden"); }
+            function parseExpiryDate(txt) {
+        var c = (txt || "").replace(/[oO]/g, "0").replace(/[lI|]/g, "1");
+        var m = c.match(/\b([0-3]?\d)[\/\-.]([01]?\d)[\/\-.](\d{4}|\d{2})\b/);
+        if (m) {
+          var g = parseInt(m[1], 10), mm = parseInt(m[2], 10), aa = parseInt(m[3], 10);
+          if (aa < 100) aa += 2000;
+          if (mm >= 1 && mm <= 12 && g >= 1 && g <= 31) return aa + "-" + String(mm).padStart(2, "0") + "-" + String(g).padStart(2, "0");
+        }
+        m = c.match(/\b([01]?\d)[\/\-.](20\d{2})\b/);
+        if (m) {
+          var mes = parseInt(m[1], 10), anno = parseInt(m[2], 10);
+          if (mes >= 1 && mes <= 12) {
+            var last = new Date(anno, mes, 0).getDate();
+            return anno + "-" + String(mes).padStart(2, "0") + "-" + String(last).padStart(2, "0");
+          }
+        }
+        return null;
+      }
+
+      function scanBarcodeFile(file) {
+        if (typeof Html5Qrcode === "undefined") return Promise.resolve("");
+        try {
+          var scanner = new Html5Qrcode("reader-hidden");
+          return scanner.scanFile(file, false).then(function (code) {
+            try { scanner.clear(); } catch (e) {}
+            return code || "";
+          }).catch(function () {
+            try { scanner.clear(); } catch (e) {}
+            return "";
+          });
+        } catch (e) { return Promise.resolve(""); }
+      }
+
+      function lookupProductName(code) {
+        if (!code) return Promise.resolve("");
+        return fetch("https://world.openfoodfacts.org/api/v0/product/" + encodeURIComponent(code) + ".json")
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data && data.status === 1 && data.product) {
+              var n = data.product.product_name_it || data.product.product_name || "";
+              var b = data.product.brands ? " (" + data.product.brands + ")" : "";
+              return (n + b).trim() || ("Prodotto " + code);
+            }
+            return "Barcode " + code;
+          }).catch(function () { return "Barcode " + code; });
+      }
+
+      function readOcrFile(file) {
+        if (typeof Tesseract === "undefined") return Promise.resolve({ date: null, raw: "" });
+        return Tesseract.recognize(file, "eng+ita", { logger: function () {} }).then(function (res) {
+          var raw = (res && res.data && res.data.text) ? res.data.text.trim() : "";
+          return { date: parseExpiryDate(raw), raw: raw };
+        }).catch(function () { return { date: null, raw: "" }; });
+      }
+
+      function render() {
         document.getElementById("sub-fam").textContent = "Gruppo: " + fam;
         document.getElementById("c-tot").textContent = items.length;
         document.getElementById("c-sel").textContent = sel.length;
         var soon = 0, exp = 0;
-        for (var i = 0; i < items.length; i++) {
-          var dl = daysLeft(items[i].expiry);
-          if (dl < 0) exp++; else if (dl <= 3) soon++;
-        }
+        for (var i = 0; i < items.length; i++) { var dl = daysLeft(items[i].expiry); if (dl < 0) exp++; else if (dl <= 3) soon++; }
         document.getElementById("c-soon").textContent = soon;
         document.getElementById("c-exp").textContent = exp;
         var box = document.getElementById("list");
         if (!items.length) {
-          box.innerHTML = '<div class="text-center py-8 bg-white rounded-2xl border border-dashed text-slate-400 text-sm">Nessun prodotto. Tocca <b>Aggiungi a mano</b> o <b>Foto / Scadenza</b>.</div>';
+          box.innerHTML = '<div class="text-center py-8 bg-white rounded-2xl border border-dashed text-slate-400 text-sm">Nessun prodotto. Tocca <b>Scatta e Riconosci</b> o <b>Aggiungi a mano</b>.</div>';
           return;
         }
         box.innerHTML = items.map(function (it) {
@@ -147,78 +175,84 @@
           return '<div class="bg-white p-3 rounded-xl border flex items-center justify-between gap-2"><div class="flex items-center gap-2.5 min-w-0"><input type="checkbox" ' + chk + ' data-id="' + it.id + '" class="chk-it w-4 h-4" /><div class="min-w-0"><div class="font-semibold text-sm truncate">' + it.name + '</div><div class="text-xs text-slate-500">' + it.loc + ' • Q.tà ' + it.qty + ' • Scad. ' + it.expiry + '</div></div></div><button type="button" data-id="' + it.id + '" class="del-it bg-slate-100 text-xs px-2.5 py-1.5 rounded-lg">Usato</button></div>';
         }).join("");
         var chks = box.querySelectorAll(".chk-it");
-        for (var c = 0; c < chks.length; c++) {
-          chks[c].addEventListener("change", function () {
-            var id = this.getAttribute("data-id"), idx = sel.indexOf(id);
-            if (idx >= 0) sel.splice(idx, 1); else sel.push(id);
-            document.getElementById("c-sel").textContent = sel.length;
-          });
-        }
+        for (var c = 0; c < chks.length; c++) chks[c].addEventListener("change", function () { var id = this.getAttribute("data-id"), idx = sel.indexOf(id); if (idx >= 0) sel.splice(idx, 1); else sel.push(id); document.getElementById("c-sel").textContent = sel.length; });
         var dels = box.querySelectorAll(".del-it");
-        for (var d = 0; d < dels.length; d++) {
-          dels[d].addEventListener("click", function () {
-            var id = this.getAttribute("data-id");
-            items = items.filter(function (x) { return x.id !== id; });
-            sel = sel.filter(function (x) { return x !== id; });
-            save();
-          });
-        }
+        for (var d = 0; d < dels.length; d++) dels[d].addEventListener("click", function () { var id = this.getAttribute("data-id"); items = items.filter(function (x) { return x.id !== id; }); sel = sel.filter(function (x) { return x !== id; }); save(); });
       }
 
       document.getElementById("b-add").addEventListener("click", function () {
+        hideStatus();
+        document.getElementById("ocr-info").classList.add("hidden");
         document.getElementById("in-name").value = "";
         document.getElementById("in-qty").value = "1";
         document.getElementById("in-exp").value = defaultExp(7);
         document.getElementById("box-form").classList.remove("hidden");
       });
-      document.getElementById("b-cam").addEventListener("click", function () { document.getElementById("file-cam").click(); });
-      document.getElementById("file-cam").addEventListener("change", function () {
-        if (this.files && this.files[0]) {
-          document.getElementById("in-name").value = "";
-          document.getElementById("in-qty").value = "1";
-          document.getElementById("in-exp").value = defaultExp(7);
-          document.getElementById("box-form").classList.remove("hidden");
-          alert("Foto acquisita: imposta nome e scadenza e salva.");
-        }
+
+      document.getElementById("b-cam").addEventListener("click", function () {
+        document.getElementById("file-cam").value = "";
+        document.getElementById("file-cam").click();
       });
+
+      document.getElementById("file-cam").addEventListener("change", function () {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        setStatus("Analisi foto in corso: cerco codice a barre e data di scadenza...");
+        Promise.all([scanBarcodeFile(file), readOcrFile(file)]).then(function (results) {
+          var code = results[0];
+          var ocr = results[1];
+          lookupProductName(code).then(function (prodName) {
+            hideStatus();
+            document.getElementById("in-name").value = prodName || "";
+            document.getElementById("in-qty").value = "1";
+            document.getElementById("in-exp").value = ocr.date || defaultExp(7);
+            var info = document.getElementById("ocr-info");
+            var notes = [];
+            if (code) notes.push("Barcode: " + code);
+            if (ocr.date) notes.push("Scadenza letta: " + ocr.date);
+            else if (ocr.raw) notes.push("Testo letto: " + ocr.raw.slice(0, 45));
+            else notes.push("Data non rilevata automaticamente: verifica il campo data");
+            info.textContent = notes.join(" • ");
+            info.classList.remove("hidden");
+            document.getElementById("box-form").classList.remove("hidden");
+          });
+        });
+      });
+
       document.getElementById("b-cancel").addEventListener("click", function () { document.getElementById("box-form").classList.add("hidden"); });
       document.getElementById("b-save").addEventListener("click", function () {
         var name = (document.getElementById("in-name").value || "").trim();
         var loc = document.getElementById("in-loc").value;
         var qty = parseInt(document.getElementById("in-qty").value, 10) || 1;
         var expiry = document.getElementById("in-exp").value || defaultExp(7);
-        if (!name) { alert("Scrivi il nome del prodotto."); return; }
+        if (!name) { alert("Scrivi o conferma il nome del prodotto."); return; }
         items.push({ id: String(Date.now()), name: name, loc: loc, qty: qty, expiry: expiry });
         document.getElementById("box-form").classList.add("hidden");
         save();
       });
+
       document.getElementById("b-rec").addEventListener("click", function () {
         var chosen = items.filter(function (x) { return sel.indexOf(x.id) >= 0; });
         if (!chosen.length) { alert("Seleziona prima almeno un prodotto dalla lista."); return; }
         var names = chosen.map(function (x) { return x.name.toLowerCase(); });
-        var found = RICETTE.filter(function (r) {
-          return r.ing.some(function (k) { return names.some(function (n) { return n.indexOf(k) >= 0 || k.indexOf(n) >= 0; }); });
-        });
+        var found = RICETTE.filter(function (r) { return r.ing.some(function (k) { return names.some(function (n) { return n.indexOf(k) >= 0 || k.indexOf(n) >= 0; }); }); });
         var recBox = document.getElementById("box-rec"), recList = document.getElementById("rec-list");
         recBox.classList.remove("hidden");
         if (!found.length) {
           recList.innerHTML = '<div class="p-2.5 bg-amber-50 rounded-xl">Idea rapida con <b>' + chosen.map(function (x) { return x.name; }).join(", ") + '</b>: usali per un piatto unico o contorno veloce.</div>';
           return;
         }
-        recList.innerHTML = found.map(function (r) {
-          return '<div class="p-2.5 bg-slate-50 rounded-xl border"><div class="font-bold">' + r.t + '</div><div class="text-slate-600 mt-0.5">' + r.d + '</div></div>';
-        }).join("");
+        recList.innerHTML = found.map(function (r) { return '<div class="p-2.5 bg-slate-50 rounded-xl border"><div class="font-bold">' + r.t + '</div><div class="text-slate-600 mt-0.5">' + r.d + '</div></div>'; }).join("");
       });
+
       document.getElementById("b-rec-close").addEventListener("click", function () { document.getElementById("box-rec").classList.add("hidden"); });
       document.getElementById("b-fam").addEventListener("click", function () { document.getElementById("in-fam").value = fam; document.getElementById("box-fam").classList.toggle("hidden"); });
       document.getElementById("b-fam-close").addEventListener("click", function () { document.getElementById("box-fam").classList.add("hidden"); });
       document.getElementById("b-fam-ok").addEventListener("click", function () {
         var v = (document.getElementById("in-fam").value || "").trim().toUpperCase();
         if (!v) return;
-        fam = v;
-        try { localStorage.setItem("ds_fam", fam); } catch (e) {}
-        sel = []; load(); render();
-        document.getElementById("box-fam").classList.add("hidden");
+        fam = v; try { localStorage.setItem("ds_fam", fam); } catch (e) {}
+        sel = []; load(); render(); document.getElementById("box-fam").classList.add("hidden");
       });
       document.getElementById("b-fam-share").addEventListener("click", function () {
         var u = window.location.origin + window.location.pathname + "?family=" + encodeURIComponent(fam);
